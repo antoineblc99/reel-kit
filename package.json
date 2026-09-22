@@ -1,0 +1,15 @@
+{
+  "name": "reel-kit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.8.42 preview",
+    "check": "npx --yes hyperframes@0.8.42 check",
+    "render": "npx --yes hyperframes@0.8.42 render --output renders/reel.mp4",
+    "publish": "npx --yes hyperframes@0.8.42 publish",
+    "snapshot": "npx --yes hyperframes@0.8.42 snapshot",
+    "preflight": "node scripts/preflight.mjs .",
+    "beats": "node scripts/validate-beat-sync.mjs .",
+    "frames": "bash scripts/frames-at-cuts.sh"
+  }
+}

@@ -1,0 +1,74 @@
+/* reel-kit — tokens. Source unique palette / typo / motion / texture.
+   Les scènes référencent ces variables, jamais de hex ni de nom de police en dur.
+   Le pourquoi est dans DESIGN.md. Dérivé du style paper du kit de Nate Herk (MIT). */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("assets/fonts/Archivo.ttf") format("truetype");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Fraunces";
+  src: url("assets/fonts/Fraunces.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Fraunces";
+  src: url("assets/fonts/Fraunces-Italic.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Caveat";
+  src: url("assets/fonts/Caveat.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+}
+
+:root {
+  /* palette */
+  --paper: #efe9dc;
+  --paper-2: #e6dcc4;
+  --ink: #17130e;
+  --accent: #f26a1b;
+  --accent-ink: #d35c18;  /* texte orange sur papier : passe le contraste 3:1 */
+  --alarm: #e23b2e;
+  --muted: rgba(23, 19, 14, 0.55);
+  --line: rgba(23, 19, 14, 0.25);
+
+  /* typo */
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-hand: "Caveat", "Bradley Hand", cursive;
+
+  --size-mega: 210px;     /* chiffre héros plein écran */
+  --size-display: 118px;  /* titre de scène */
+  --size-title: 96px;     /* titre de split */
+  --size-row: 44px;       /* ligne de carte */
+  --size-body: 40px;      /* corps, heures */
+  --size-cap: 62px;       /* sous-titres */
+  --size-label: 26px;     /* kicker */
+  --size-hand: 52px;      /* notes à la main */
+
+  --track-tight: -0.03em;
+  --track-wide: 0.16em;
+
+  /* motion (les eases GSAP vivent dans les scènes : back.out(2.2), steps(6)) */
+  --dur-in: 0.42s;
+  --dur-out: 0.3s;
+
+  /* forme */
+  --radius-card: 3px;
+  --radius-face: 30px;
+  --tilt: -1.4deg;
+  --shadow-card: 0 2px 0 rgba(23, 19, 14, 0.08), 8px 12px 24px rgba(23, 19, 14, 0.18), 14px 18px 0 -6px var(--paper-2);
+  --shadow-face: 8px 12px 24px rgba(23, 19, 14, 0.28);
+
+  /* textures déterministes */
+  --tex-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grid-line: rgba(23, 19, 14, 0.06);
+  --grid-size: 64px;
+}

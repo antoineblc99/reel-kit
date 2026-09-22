@@ -1,0 +1,23 @@
+# media never lives in git: not in the kit, not in a project cloned from it
+assets/*.mp4
+assets/*.mov
+assets/*.webm
+assets/*.wav
+assets/*.m4a
+assets/*.jpg
+assets/derush/*.mp4
+assets/derush/*.mov
+assets/derush/*.wav
+assets/broll/*.mp4
+assets/broll/*.mov
+assets/broll/*.webm
+assets/broll/*-source.*
+assets/captures/
+renders/
+review/
+snapshots/
+.thumbnails/
+.waveform-cache/
+node_modules/
+.env
+.DS_Store
