@@ -14,6 +14,14 @@ rush.mov ──► 1 framing ──► 2 rough cut ──► 3 captions ──�
 git clone https://github.com/antoineblc99/reel-kit && cd reel-kit && ./setup.sh
 ```
 
+Or let the agent do it: open Claude Code (or Codex) anywhere and paste
+
+> Clone https://github.com/antoineblc99/reel-kit into ~/reel-kit, run ./setup.sh, and walk me through whatever is missing.
+
+`setup.sh` names each missing tool with its install command. Without a transcription key it explains the two options
+below and stops; the agent guides you, you create the key yourself and put it in a `.env` file in the folder
+(`ELEVENLABS_API_KEY=…`), never in the chat.
+
 You need Node 20+, ffmpeg, Python 3.10+ (with numpy) and a transcription engine:
 
 - **ElevenLabs Scribe** (recommended): `export ELEVENLABS_API_KEY=...` in your shell profile. About 0.22 $ per hour of audio,

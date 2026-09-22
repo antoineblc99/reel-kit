@@ -7,6 +7,16 @@ user says "ok". When in doubt, Nate's skill wins; this file only says how we run
 
 The user validates at every gate. Nothing is built before the "ok" on the current gate. That is the whole method.
 
+## First run: setup
+
+If `./setup.sh` has never been run on this machine, run it first and read its output. It names each missing tool with the
+command to install it. If no transcription engine is set up, walk the user through it in plain words: option A, an
+ElevenLabs key (they create it at https://elevenlabs.io/app/settings/api-keys and put it themselves in a `.env` file in
+the project, `ELEVENLABS_API_KEY=…`, or in their shell profile; **never ask them to paste the key into the chat**, and if a
+key appears in the chat, tell them to revoke it); option B, `./setup.sh --whisperx` for a free local engine. Then run
+`./setup.sh` again. For gate 7, the user connects PlugKit's MCP server from their PlugKit dashboard (MCP page); confirm
+it with a `whoami` call before any publication step.
+
 ## Read in this order
 
 1. `RUN.md` of the project: state, gates ticked, decisions.

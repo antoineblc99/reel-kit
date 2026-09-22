@@ -29,6 +29,11 @@ ap.add_argument("--device", default="cpu")
 ap.add_argument("--threads", type=int, default=8)
 args = ap.parse_args()
 
+ROOT = Path(__file__).resolve().parent.parent
+if not os.environ.get("ELEVENLABS_API_KEY") and (ROOT / ".env").exists():  # .env in the project: KEY=value lines, never committed
+    for line in (ROOT / ".env").read_text().splitlines():
+        if line.startswith("ELEVENLABS_API_KEY="):
+            os.environ["ELEVENLABS_API_KEY"] = line.split("=", 1)[1].strip().strip('"').strip("'")
 VENV = Path.home() / ".reel-kit/venv/bin/python"
 engine = args.engine or ("scribe" if os.environ.get("ELEVENLABS_API_KEY") else "whisperx")
 if engine == "whisperx" and Path(sys.executable).resolve() != VENV.resolve():
