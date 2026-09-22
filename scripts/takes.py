@@ -19,6 +19,9 @@ from pathlib import Path
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sdr import sdr_vf, SDR_TAGS, is_hdr
+
 ap = argparse.ArgumentParser()
 ap.add_argument("rush")
 ap.add_argument("--derush", default="assets/derush", help="output folder inside the reel: raw.mp4, raw.segments.json, raw.captions.json, takes.json")
@@ -43,11 +46,11 @@ raw = D / "raw.mp4"
 if raw.resolve() != rush:
     probe = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name,pix_fmt,r_frame_rate",
                                      "-of", "csv=p=0", str(rush)]).decode().strip().split(",")
-    if probe[:2] == ["h264", "yuv420p"] and probe[2] in (f"{args.fps}/1", f"{args.fps * 1000}/1001"):
+    if probe[:2] == ["h264", "yuv420p"] and probe[2] in (f"{args.fps}/1", f"{args.fps * 1000}/1001") and not is_hdr(rush):
         shutil.copy(rush, raw)
     else:
         print(f"rush {probe[0]} {probe[1]} {probe[2]} → H.264 yuv420p {args.fps} fps: {raw.relative_to(ROOT)}")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(rush), "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(rush), "-vf", sdr_vf(rush), *SDR_TAGS, "-c:v", "libx264", "-preset", "fast", "-crf", "18",
                         "-r", str(args.fps), "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(raw)], check=True)
 rush = raw
 tmp = Path(tempfile.mkdtemp(prefix="takes-"))
@@ -62,7 +65,7 @@ n = len(x) // win
 db = 20 * np.log10(np.sqrt((x[: n * win].reshape(n, win) ** 2).mean(1) + 1e-12) + 1e-9)
 floor = float(np.percentile(db, 5))
 speech = float(np.percentile(db, 80))
-voice_thr = floor + 18
+voice_thr = floor + min(18, 0.7 * (speech - floor))   # a quiet track (speech 16 dB above the floor) must still cross it
 # silencedetect threshold: halfway down the dip between floor and speech, never a fixed number
 sd_thr = round((floor + speech) / 2)
 print(f"duration {dur:.1f} s · floor {floor:.1f} dB · speech {speech:.1f} dB · silence threshold {sd_thr} dB · voice threshold {voice_thr:.1f} dB")
@@ -104,6 +107,32 @@ for a, b in runs:
         continue
     takes.append({"in": round(max(0, on - args.head), 2), "out": round(min(dur, off + args.tail), 2)})
 print(f"{len(takes)} speech takes")
+if len(takes) <= 1 and dur > 30:
+    # a quiet or noisy track (camera AGC fills the pauses): cut on the word gaps of a whole-file transcript instead.
+    # Only Scribe keeps every retake on a whole file; WhisperX would swallow them.
+    if not os.environ.get("ELEVENLABS_API_KEY") and not (ROOT / ".env").exists():
+        sys.exit("the level-based split found one long take and there is no ELEVENLABS_API_KEY for a word-based split: check the audio")
+    print("one long take: splitting on word gaps from a whole-file Scribe transcript")
+    r = subprocess.run(args.transcribe.split() + [str(rush), "--engine", "scribe", "--out", str(tmp / "whole.json")], capture_output=True, text=True)
+    if r.returncode:
+        sys.exit("transcription failed:\n" + r.stderr[-2000:])
+    ws = json.loads((tmp / "whole.json").read_text())["words"]
+    runs, cur = [], [ws[0]] if ws else []
+    for a, b in zip(ws, ws[1:]):
+        if b["start"] - a["end"] >= args.min_silence + 0.25:
+            runs.append(cur); cur = [b]
+        else:
+            cur.append(b)
+    if cur:
+        runs.append(cur)
+    takes = []
+    for grp in runs:
+        a, b = grp[0]["start"], grp[-1]["end"]
+        on, off = onset(max(0, a - 0.3), a + 0.4), offset(b - 0.4, min(dur, b + 0.6))
+        on = a if on is None else min(on, a)
+        off = b if off is None else max(off, b)
+        takes.append({"in": round(max(0, on - args.head), 2), "out": round(min(dur, off + args.tail), 2)})
+    print(f"{len(takes)} takes from word gaps")
 
 # 3. transcription: Scribe (one call, words sorted by take) or WhisperX (each take transcribed on its own)
 (tmp / "takes-in.json").write_text(json.dumps([{"in": t["in"], "out": t["out"]} for t in takes]))

@@ -50,6 +50,9 @@ Then paste a prompt like:
 
 The agent reads `AGENTS.md`, runs `scripts/takes.py` on the rush, and comes back with the take list. That is gate 2.
 
+The same kit edits a 16:9 YouTube intro (`"format": "youtube"` in `storyboard.json`, layout `Y`): the speaker moves to a
+corner on a word, clips play in tilted phone frames, cards and numbers pop where the sentence says so.
+
 ## What is inside
 
 - `AGENTS.md` (= `CLAUDE.md`): the map, one line per gate: Nate's step, the local tool, what you validate.

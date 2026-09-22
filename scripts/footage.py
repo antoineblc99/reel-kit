@@ -19,6 +19,9 @@ captures of things you own. A YouTube video is someone else's work: quote it bri
 import argparse, datetime, hashlib, json, re, subprocess, sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sdr import sdr_vf, SDR_TAGS
+
 ap = argparse.ArgumentParser()
 ap.add_argument("source", help="URL (yt-dlp) or local video file")
 ap.add_argument("--slug", required=True, help="short id, e.g. cge-table, app-demo-1")
@@ -62,7 +65,7 @@ if not (0 <= t_in < t_out <= src_dur + 0.05):
 clip = BROLL / f"{args.slug}.mp4"
 poster = BROLL / f"{args.slug}.jpg"
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t_in:.3f}", "-to", f"{t_out:.3f}", "-i", str(source_file),
-                "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(args.fps),
+                "-vf", sdr_vf(source_file), *SDR_TAGS, "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", str(args.fps),
                 "-g", str(args.fps), "-keyint_min", str(args.fps), "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(clip)], check=True)
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(clip), "-frames:v", "1", "-q:v", "3", str(poster)], check=True)
 dur = round(float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(clip)]).decode().strip()), 3)

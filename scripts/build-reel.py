@@ -25,7 +25,7 @@ _tp = ROOT / "assets" / "transcript.json" if (ROOT / "assets" / "transcript.json
 transcript = json.loads(_tp.read_text()) if _tp.exists() else {"words": []}
 FPS = int(sb.get("fps", 30))
 
-W, H = 1080, 1920
+W, H = (1920, 1080) if sb.get("format") == "youtube" else (1080, 1920)   # "youtube" = 16:9, layout Y
 SPEAKER = sb.get("speaker", "assets/speaker.mp4")
 AUDIO = sb.get("audio", "assets/reel-audio.wav")
 DURATION = float(sb["duration"])
@@ -38,7 +38,7 @@ def kw_norm(t):
 KEYWORDS = [kw_norm(k) for k in sb.get("keywords", [])]
 LOCALE = sb.get("locale", "en-US")   # number formatting in count-ups: "40 825" in fr-FR, "40,825" in en-US
 LANG = sb.get("lang", LOCALE.split("-")[0])
-CAP_TOP = {"C": 850, "B": 940, "D": 1690, "F": 1500, "S": 780}
+CAP_TOP = {"C": 850, "B": 940, "D": 1690, "F": 1500, "S": 780, "Y": 930}
 CAP_MAX_WORDS = int(sb.get("caption_max_words", 4))
 CAP_STYLE = sb.get("caption_style", "kit")          # "kit" = ink pill, uppercase · "pop" = Helvetica Neue Bold, keyword enlarged
 CAP_FONT = sb.get("caption_font", '"Helvetica Neue", Helvetica, Arial, sans-serif')
@@ -78,7 +78,7 @@ def r3(x):
 # ----------------------------------------------------------------------------- CSS shared by the scenes
 
 SCENE_CSS = """
-#root { position: absolute; inset: 0; width: 1080px; height: 1920px; overflow: hidden; color: var(--ink); }
+#root { position: absolute; inset: 0; width: __W__px; height: __H__px; overflow: hidden; color: var(--ink); }
 .paper { position: absolute; background: var(--paper); }
 .paper::before { content: ""; position: absolute; inset: 0; background-image: var(--tex-grain); opacity: .28; mix-blend-mode: multiply; }
 .paper::after { content: ""; position: absolute; inset: 0; background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px); background-size: var(--grid-size) var(--grid-size); }
@@ -148,6 +148,15 @@ SCENE_CSS = """
 .zphoto img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .zchevs { position: absolute; left: 0; right: 0; text-align: center; line-height: .55; }
 .zchev { display: block; font-size: 150px; font-weight: 900; color: var(--z-accent, #D40F30); }
+/* layout Y (16:9): the speaker lives in the scene and moves; the zone is the whole frame, transparent */
+.ybg { position: absolute; inset: 0; background: var(--z-bg, #F3F1EE); }
+.ybg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,.6), transparent 60%); }
+.yface { position: absolute; left: 0; top: 0; width: __W__px; height: __H__px; overflow: hidden; transform-origin: 0 0; background: #000; }
+.yface video { width: 100%; height: 100%; object-fit: cover; }
+#zone.y { width: __W__px; height: __H__px; background: transparent; }
+#zone.y::after { display: none; }
+.zphone { position: absolute; overflow: hidden; border-radius: 44px; border: 10px solid #111; background: #000; box-shadow: 0 40px 90px rgba(0,0,0,.45); }
+.zphone video { display: block; width: 100%; height: 100%; object-fit: cover; }
 .zlogo { position: absolute; }
 .zlogo img { width: 100%; height: auto; display: block; }
 .cta { position: absolute; left: 70px; right: 70px; top: 1290px; background: #f7f2e7; border: 1px solid rgba(23,19,14,.18); border-radius: var(--radius-card); box-shadow: var(--shadow-card); transform: rotate(var(--tilt)); padding: 34px 40px 40px; }
@@ -232,6 +241,90 @@ def tl_common(sid, sc, slot):
     return t
 
 
+def zone_items(sid, z, t0, t1, tl):
+    """Screen-zone items (layouts S and Y): returns the HTML, appends the GSAP calls to tl."""
+    items_html = []
+    def rel(t):
+        return r3(max(0, resolve_at(t, t0, t1) - t0))
+    for j, it in enumerate(z.get("items", [])):
+        iid = f"{sid}-z{j}"
+        typ = it.get("type", "line")
+        at = rel(it.get("at", t0))
+        x, y = it.get("x", 60), it.get("y", 120)
+        if typ == "card":
+            logos = "".join(f'<img src="{esc(l)}" alt="">' for l in it.get("logos", []))
+            num = f'<div class="num" id="{iid}-num" data-value="{it["value"]}" data-suffix="{esc(it.get("suffix", " €"))}">{"0" + esc(it.get("suffix", " €")) if it.get("count") else esc(it.get("number", ""))}</div>' if (it.get("value") is not None or it.get("number")) else ""
+            items_html.append(f'<div class="zc" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 460)}px;{"height:" + str(it["h"]) + "px;" if it.get("h") else ""}"><div class="bar"></div>{("<div class=\"ttl\">" + rich(it["title"]) + "</div>") if it.get("title") else ""}{num}{("<div class=\"lab\">" + esc(it["label"]) + "</div>") if it.get("label") else ""}{("<div class=\"logos\" style=\"--cols:" + str(it.get("cols", 3)) + ";--lh:" + str(it.get("logo_h", 96)) + "px\">" + logos + "</div>") if logos else ""}</div>')
+            frm = it.get("from", "up")
+            if frm != "none":
+                start_pos = {"left": "x: -520, rotation: -4", "right": "x: 520, rotation: 4", "up": "y: 90", "down": "y: -90"}[frm]
+                tl.append(f'tl.from("#{iid}", {{ {start_pos}, opacity: 0, duration: 0.55, ease: "back.out(1.5)" }}, {at});')
+            if it.get("value") is not None and it.get("count"):
+                tl.append(f'(function(){{ const el = document.getElementById("{iid}-num"); const o = {{ v: 0 }}; tl.to(o, {{ v: {it["value"]}, duration: {r3(it.get("count", 0.9))}, ease: "power2.out", onUpdate: () => {{ el.textContent = Math.round(o.v).toLocaleString("{LOCALE}").replace(/\u202f|\u00a0/g, " ") + el.dataset.suffix; }} }}, {rel(it.get("count_at", it.get("at", t0)))}); }})();')
+            if it.get("shrink_at") is not None:
+                tl.append(f'tl.to("#{iid}", {{ scale: {it.get("shrink_scale", 0.62)}, x: {it.get("shrink_x", 0)}, y: {it.get("shrink_y", 0)}, duration: 0.5, ease: "power3.inOut", transformOrigin: "50% 0%" }}, {rel(it["shrink_at"])});')
+            if it.get("strike_at") is not None:
+                items_html.append(f'<div class="zstrike" id="{iid}-strike" style="left:{x + 24}px;top:{y + it.get("strike_y", 120)}px;width:{it.get("w", 460) - 48}px;transform:rotate(-6deg)"></div>')
+                tl.append(f'tl.from("#{iid}-strike", {{ scaleX: 0, duration: 0.3, ease: "power3.out" }}, {rel(it["strike_at"])});')
+        elif typ == "badge":
+            items_html.append(f'<div class="zbadge" id="{iid}" style="left:{x}px;top:{y}px">{esc(it["text"])}</div>')
+            tl.append(f'tl.from("#{iid}", {{ scale: 0, rotation: -30, duration: 0.45, ease: "back.out(2.4)" }}, {at});')
+        elif typ == "stamp":
+            items_html.append(f'<div class="zstamp" id="{iid}" style="left:{x}px;top:{y}px">{esc(it["text"])}</div>')
+            tl.append(f'tl.from("#{iid}", {{ scale: 1.8, opacity: 0, rotation: -14, duration: 0.32, ease: "power4.out" }}, {at});')
+        elif typ == "image":
+            hls = "".join(f'<div class="hl" id="{iid}-hl{k}" style="left:{h[0]}px;top:{h[1]}px;width:{h[2]}px;height:{h[3]}px"></div>' for k, h in enumerate(it.get("highlights", [])))
+            items_html.append(f'<div class="zimg" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 960)}px;{"height:" + str(it["h"]) + "px;" if it.get("h") else ""}"><div id="{iid}-in" style="position:relative;transform-origin:{it.get("origin", "50% 50%")}"><img src="{esc(it["src"])}" alt="">{hls}</div></div>')
+            tl.append(f'tl.from("#{iid}", {{ y: 80, opacity: 0, duration: 0.45, ease: "power3.out" }}, {at});')
+            if it.get("zoom_at") is not None:
+                tl.append(f'tl.to("#{iid}-in", {{ scale: {it.get("zoom", 1.8)}, x: {it.get("zoom_x", 0)}, y: {it.get("zoom_y", 0)}, duration: 0.7, ease: "power3.inOut" }}, {rel(it["zoom_at"])});')
+            for k, h in enumerate(it.get("highlights", [])):
+                tl.append(f'tl.from("#{iid}-hl{k}", {{ scaleX: 0, duration: 0.35, ease: "power3.out" }}, {rel(it.get("highlight_at", it.get("at", t0)))});')
+        elif typ == "video":
+            v_end = rel(it["out_at"]) if it.get("out_at") is not None else r3(t1 - t0)
+            klass = "zphone" if it.get("phone") else "zvideo"
+            tilt = f'transform:perspective(1800px) rotateY({it.get("tilt", 0)}deg) rotateX({it.get("tilt_x", 0)}deg);' if it.get("tilt") or it.get("tilt_x") else ""
+            items_html.append(f'<div class="{klass}" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 960)}px;height:{it.get("h", 540)}px;{tilt}"><video id="{iid}-v" class="clip" src="{esc(it["src"])}" data-start="{at}" data-duration="{r3(float(v_end) - float(at))}" data-media-start="{r3(it.get("media_start", 0))}" data-track-index="{40 + j}" muted playsinline style="width:100%;height:100%;object-fit:cover;object-position:{it.get("pos", "50% 50%")}"></video></div>')
+            frm = it.get("from", "up")
+            start_pos = {"left": "x: -400", "right": "x: 400", "up": "y: 120", "down": "y: -120", "far": "z: -900"}.get(frm, "y: 120")
+            tl.append(f'tl.from("#{iid}", {{ {start_pos}, opacity: 0, duration: 0.55, ease: "back.out(1.4)" }}, {at});')
+        elif typ == "big":
+            items_html.append(f'<div class="zbig" id="{iid}" style="top:{y}px;{"left:" + str(it["x"]) + "px;right:auto;width:" + str(it.get("w", 800)) + "px;" if it.get("x") is not None and it.get("x") != "center" else ""}font-size:{it.get("size", 200)}px;{"color:" + it["color"] + ";" if it.get("color") else ""}"><span id="{iid}-t" style="display:inline-block;position:relative;padding:0 30px">{esc(it.get("text", "")) if not it.get("value") else "0" + esc(it.get("suffix", " €"))}{"<span class=\"zring\" id=\"" + iid + "-ring\" style=\"inset:-16px -30px\"></span>" if it.get("circle_at") is not None else ""}</span>{("<div style=\"font-size:30px;letter-spacing:.14em;color:#8F8B85;margin-top:18px;font-weight:700\">" + esc(it["label"]) + "</div>") if it.get("label") else ""}</div>')
+            tl.append(f'tl.from("#{iid}", {{ scale: 0.6, opacity: 0, duration: 0.4, ease: "back.out(2)" }}, {at});')
+            if it.get("value"):
+                tl.append(f'(function(){{ const el = document.getElementById("{iid}-t").childNodes[0]; const o = {{ v: 0 }}; tl.to(o, {{ v: {it["value"]}, duration: {r3(it.get("count", 0.8))}, ease: "power2.out", onUpdate: () => {{ el.textContent = Math.round(o.v).toLocaleString("{LOCALE}").replace(/\u202f|\u00a0/g, " ") + "{esc(it.get("suffix", " €"))}"; }} }}, {at}); }})();')
+            if it.get("circle_at") is not None:
+                tl.append(f'tl.from("#{iid}-ring", {{ scale: 0.3, opacity: 0, duration: 0.4, ease: "back.out(2)" }}, {rel(it["circle_at"])});')
+        elif typ == "check":
+            items_html.append(f'<div class="zcheck" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 960)}px"><span class="n">{esc(it.get("n", ""))}</span><span>{rich(it["text"])}</span><span class="ck" id="{iid}-ck">✓</span>{"<span class=\"ul\" id=\"" + iid + "-ul\"></span>" if it.get("underline_at") is not None else ""}</div>')
+            tl.append(f'tl.from("#{iid}", {{ x: -300, opacity: 0, duration: 0.45, ease: "back.out(1.4)" }}, {at});')
+            tl.append(f'tl.from("#{iid}-ck", {{ scale: 0, duration: 0.35, ease: "back.out(2.6)" }}, {rel(it.get("check_at", it.get("at", t0)))});')
+            if it.get("underline_at") is not None:
+                tl.append(f'tl.from("#{iid}-ul", {{ scaleX: 0, duration: 0.3, ease: "power3.out" }}, {rel(it["underline_at"])});')
+        elif typ == "logo":
+            items_html.append(f'<div class="zlogo" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 600)}px"><img src="{esc(it["src"])}" alt=""></div>')
+            tl.append(f'tl.from("#{iid}", {{ scale: 0.7, opacity: 0, duration: 0.45, ease: "back.out(1.8)" }}, {at});')
+        elif typ == "photo":
+            items_html.append(f'<div class="zphoto" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 700)}px;height:{it.get("h", 900)}px;transform:rotate({it.get("rotate", 0)}deg)"><img src="{esc(it["src"])}" alt="" style="object-position:{it.get("pos", "50% 50%")}"></div>')
+            tl.append(f'tl.from("#{iid}", {{ y: 120, opacity: 0, rotation: {it.get("rotate", 0) - 6}, duration: 0.6, ease: "back.out(1.4)" }}, {at});')
+            if it.get("drift"):
+                tl.append(f'tl.to("#{iid} img", {{ scale: 1.08, duration: {r3(t1 - t0)}, ease: "none" }}, 0);')
+        elif typ == "chevrons":
+            chs = "".join(f'<span class="zchev" id="{iid}-c{k}" data-layout-allow-overlap>⌄</span>' for k in range(it.get("n", 3)))
+            items_html.append(f'<div class="zchevs" id="{iid}" style="top:{y}px">{chs}</div>')
+            atf = float(at)
+            for k in range(it.get("n", 3)):
+                tl.append(f'tl.from("#{iid}-c{k}", {{ opacity: 0, y: -30, duration: 0.28, ease: "power2.out" }}, {r3(atf + 0.14 * k)});')
+            tl.append(f'tl.to("#{iid}", {{ y: 22, duration: 0.5, ease: "sine.inOut", repeat: {max(1, int((t1 - t0 - atf) / 1.0) * 2 - 1)}, yoyo: true }}, {r3(atf + 0.5)});')
+        else:  # line
+            pos = 'left:0;right:0;text-align:center;' if x == "center" else f'left:{x}px;'
+            items_html.append(f'<div class="zline" id="{iid}" style="{pos}top:{y}px;{"font-size:" + str(it["size"]) + "px;" if it.get("size") else ""}{"color:" + it["color"] + ";" if it.get("color") else ""}{"font-weight:" + str(it["weight"]) + ";" if it.get("weight") else ""}{"letter-spacing:" + it["tracking"] + ";" if it.get("tracking") else ""}">{rich(it["text"])}</div>')
+            tl.append(f'tl.from("#{iid}", {{ opacity: 0, y: 16, duration: 0.3, ease: "power2.out" }}, {at});')
+        if it.get("out_at") is not None:
+            tl.append(f'tl.to("#{iid}", {{ opacity: 0, duration: 0.25 }}, {rel(it["out_at"])});')
+    return items_html
+
+
 def scene_html(sid, sc):
     layout = sc["layout"]
     slot = float(sc["end"]) - float(sc["start"])
@@ -278,81 +371,9 @@ def scene_html(sid, sc):
         brand = sb.get("brand", {})
         t0, t1 = float(sc["start"]), float(sc["end"])
         body.append(f'<style>#root {{ --z-bg: {brand.get("bg", "#F3F1EE")}; --z-ink: {brand.get("ink", "#0F0D0D")}; --z-accent: {brand.get("accent", "#D40F30")}; --z-font: {brand.get("font", "\"Helvetica Neue\", Helvetica, Arial, sans-serif")}; }}</style>')
-        items_html = []
         def rel(t):
             return r3(max(0, resolve_at(t, t0, t1) - t0))
-        for j, it in enumerate(z.get("items", [])):
-            iid = f"{sid}-z{j}"
-            typ = it.get("type", "line")
-            at = rel(it.get("at", t0))
-            x, y = it.get("x", 60), it.get("y", 120)
-            if typ == "card":
-                logos = "".join(f'<img src="{esc(l)}" alt="">' for l in it.get("logos", []))
-                num = f'<div class="num" id="{iid}-num" data-value="{it["value"]}" data-suffix="{esc(it.get("suffix", " €"))}">{"0" + esc(it.get("suffix", " €")) if it.get("count") else esc(it.get("number", ""))}</div>' if (it.get("value") is not None or it.get("number")) else ""
-                items_html.append(f'<div class="zc" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 460)}px;{"height:" + str(it["h"]) + "px;" if it.get("h") else ""}"><div class="bar"></div>{("<div class=\"ttl\">" + rich(it["title"]) + "</div>") if it.get("title") else ""}{num}{("<div class=\"lab\">" + esc(it["label"]) + "</div>") if it.get("label") else ""}{("<div class=\"logos\" style=\"--cols:" + str(it.get("cols", 3)) + ";--lh:" + str(it.get("logo_h", 96)) + "px\">" + logos + "</div>") if logos else ""}</div>')
-                frm = it.get("from", "up")
-                if frm != "none":
-                    start_pos = {"left": "x: -520, rotation: -4", "right": "x: 520, rotation: 4", "up": "y: 90", "down": "y: -90"}[frm]
-                    tl.append(f'tl.from("#{iid}", {{ {start_pos}, opacity: 0, duration: 0.55, ease: "back.out(1.5)" }}, {at});')
-                if it.get("value") is not None and it.get("count"):
-                    tl.append(f'(function(){{ const el = document.getElementById("{iid}-num"); const o = {{ v: 0 }}; tl.to(o, {{ v: {it["value"]}, duration: {r3(it.get("count", 0.9))}, ease: "power2.out", onUpdate: () => {{ el.textContent = Math.round(o.v).toLocaleString("{LOCALE}").replace(/\u202f|\u00a0/g, " ") + el.dataset.suffix; }} }}, {rel(it.get("count_at", it.get("at", t0)))}); }})();')
-                if it.get("shrink_at") is not None:
-                    tl.append(f'tl.to("#{iid}", {{ scale: {it.get("shrink_scale", 0.62)}, x: {it.get("shrink_x", 0)}, y: {it.get("shrink_y", 0)}, duration: 0.5, ease: "power3.inOut", transformOrigin: "50% 0%" }}, {rel(it["shrink_at"])});')
-                if it.get("strike_at") is not None:
-                    items_html.append(f'<div class="zstrike" id="{iid}-strike" style="left:{x + 24}px;top:{y + it.get("strike_y", 120)}px;width:{it.get("w", 460) - 48}px;transform:rotate(-6deg)"></div>')
-                    tl.append(f'tl.from("#{iid}-strike", {{ scaleX: 0, duration: 0.3, ease: "power3.out" }}, {rel(it["strike_at"])});')
-            elif typ == "badge":
-                items_html.append(f'<div class="zbadge" id="{iid}" style="left:{x}px;top:{y}px">{esc(it["text"])}</div>')
-                tl.append(f'tl.from("#{iid}", {{ scale: 0, rotation: -30, duration: 0.45, ease: "back.out(2.4)" }}, {at});')
-            elif typ == "stamp":
-                items_html.append(f'<div class="zstamp" id="{iid}" style="left:{x}px;top:{y}px">{esc(it["text"])}</div>')
-                tl.append(f'tl.from("#{iid}", {{ scale: 1.8, opacity: 0, rotation: -14, duration: 0.32, ease: "power4.out" }}, {at});')
-            elif typ == "image":
-                hls = "".join(f'<div class="hl" id="{iid}-hl{k}" style="left:{h[0]}px;top:{h[1]}px;width:{h[2]}px;height:{h[3]}px"></div>' for k, h in enumerate(it.get("highlights", [])))
-                items_html.append(f'<div class="zimg" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 960)}px;{"height:" + str(it["h"]) + "px;" if it.get("h") else ""}"><div id="{iid}-in" style="position:relative;transform-origin:{it.get("origin", "50% 50%")}"><img src="{esc(it["src"])}" alt="">{hls}</div></div>')
-                tl.append(f'tl.from("#{iid}", {{ y: 80, opacity: 0, duration: 0.45, ease: "power3.out" }}, {at});')
-                if it.get("zoom_at") is not None:
-                    tl.append(f'tl.to("#{iid}-in", {{ scale: {it.get("zoom", 1.8)}, x: {it.get("zoom_x", 0)}, y: {it.get("zoom_y", 0)}, duration: 0.7, ease: "power3.inOut" }}, {rel(it["zoom_at"])});')
-                for k, h in enumerate(it.get("highlights", [])):
-                    tl.append(f'tl.from("#{iid}-hl{k}", {{ scaleX: 0, duration: 0.35, ease: "power3.out" }}, {rel(it.get("highlight_at", it.get("at", t0)))});')
-            elif typ == "video":
-                v_end = rel(it["out_at"]) if it.get("out_at") is not None else r3(t1 - t0)
-                items_html.append(f'<div class="zvideo" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 960)}px;height:{it.get("h", 540)}px"><video id="{iid}-v" class="clip" src="{esc(it["src"])}" data-start="{at}" data-duration="{r3(float(v_end) - float(at))}" data-media-start="{r3(it.get("media_start", 0))}" data-track-index="{40 + j}" muted playsinline style="width:100%;height:100%;object-fit:cover;object-position:{it.get("pos", "50% 50%")}"></video></div>')
-                tl.append(f'tl.from("#{iid}", {{ y: 80, opacity: 0, duration: 0.45, ease: "power3.out" }}, {at});')
-            elif typ == "big":
-                items_html.append(f'<div class="zbig" id="{iid}" style="top:{y}px;font-size:{it.get("size", 200)}px;{"color:" + it["color"] + ";" if it.get("color") else ""}"><span id="{iid}-t" style="display:inline-block;position:relative;padding:0 30px">{esc(it.get("text", "")) if not it.get("value") else "0" + esc(it.get("suffix", " €"))}{"<span class=\"zring\" id=\"" + iid + "-ring\" style=\"inset:-16px -30px\"></span>" if it.get("circle_at") is not None else ""}</span>{("<div style=\"font-size:30px;letter-spacing:.14em;color:#8F8B85;margin-top:18px;font-weight:700\">" + esc(it["label"]) + "</div>") if it.get("label") else ""}</div>')
-                tl.append(f'tl.from("#{iid}", {{ scale: 0.6, opacity: 0, duration: 0.4, ease: "back.out(2)" }}, {at});')
-                if it.get("value"):
-                    tl.append(f'(function(){{ const el = document.getElementById("{iid}-t").childNodes[0]; const o = {{ v: 0 }}; tl.to(o, {{ v: {it["value"]}, duration: {r3(it.get("count", 0.8))}, ease: "power2.out", onUpdate: () => {{ el.textContent = Math.round(o.v).toLocaleString("{LOCALE}").replace(/\u202f|\u00a0/g, " ") + "{esc(it.get("suffix", " €"))}"; }} }}, {at}); }})();')
-                if it.get("circle_at") is not None:
-                    tl.append(f'tl.from("#{iid}-ring", {{ scale: 0.3, opacity: 0, duration: 0.4, ease: "back.out(2)" }}, {rel(it["circle_at"])});')
-            elif typ == "check":
-                items_html.append(f'<div class="zcheck" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 960)}px"><span class="n">{esc(it.get("n", ""))}</span><span>{rich(it["text"])}</span><span class="ck" id="{iid}-ck">✓</span>{"<span class=\"ul\" id=\"" + iid + "-ul\"></span>" if it.get("underline_at") is not None else ""}</div>')
-                tl.append(f'tl.from("#{iid}", {{ x: -300, opacity: 0, duration: 0.45, ease: "back.out(1.4)" }}, {at});')
-                tl.append(f'tl.from("#{iid}-ck", {{ scale: 0, duration: 0.35, ease: "back.out(2.6)" }}, {rel(it.get("check_at", it.get("at", t0)))});')
-                if it.get("underline_at") is not None:
-                    tl.append(f'tl.from("#{iid}-ul", {{ scaleX: 0, duration: 0.3, ease: "power3.out" }}, {rel(it["underline_at"])});')
-            elif typ == "logo":
-                items_html.append(f'<div class="zlogo" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 600)}px"><img src="{esc(it["src"])}" alt=""></div>')
-                tl.append(f'tl.from("#{iid}", {{ scale: 0.7, opacity: 0, duration: 0.45, ease: "back.out(1.8)" }}, {at});')
-            elif typ == "photo":
-                items_html.append(f'<div class="zphoto" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 700)}px;height:{it.get("h", 900)}px;transform:rotate({it.get("rotate", 0)}deg)"><img src="{esc(it["src"])}" alt="" style="object-position:{it.get("pos", "50% 50%")}"></div>')
-                tl.append(f'tl.from("#{iid}", {{ y: 120, opacity: 0, rotation: {it.get("rotate", 0) - 6}, duration: 0.6, ease: "back.out(1.4)" }}, {at});')
-                if it.get("drift"):
-                    tl.append(f'tl.to("#{iid} img", {{ scale: 1.08, duration: {r3(t1 - t0)}, ease: "none" }}, 0);')
-            elif typ == "chevrons":
-                chs = "".join(f'<span class="zchev" id="{iid}-c{k}" data-layout-allow-overlap>⌄</span>' for k in range(it.get("n", 3)))
-                items_html.append(f'<div class="zchevs" id="{iid}" style="top:{y}px">{chs}</div>')
-                atf = float(at)
-                for k in range(it.get("n", 3)):
-                    tl.append(f'tl.from("#{iid}-c{k}", {{ opacity: 0, y: -30, duration: 0.28, ease: "power2.out" }}, {r3(atf + 0.14 * k)});')
-                tl.append(f'tl.to("#{iid}", {{ y: 22, duration: 0.5, ease: "sine.inOut", repeat: {max(1, int((t1 - t0 - atf) / 1.0) * 2 - 1)}, yoyo: true }}, {r3(atf + 0.5)});')
-            else:  # line
-                pos = 'left:0;right:0;text-align:center;' if x == "center" else f'left:{x}px;'
-                items_html.append(f'<div class="zline" id="{iid}" style="{pos}top:{y}px;{"font-size:" + str(it["size"]) + "px;" if it.get("size") else ""}{"color:" + it["color"] + ";" if it.get("color") else ""}{"font-weight:" + str(it["weight"]) + ";" if it.get("weight") else ""}{"letter-spacing:" + it["tracking"] + ";" if it.get("tracking") else ""}">{rich(it["text"])}</div>')
-                tl.append(f'tl.from("#{iid}", {{ opacity: 0, y: 16, duration: 0.3, ease: "power2.out" }}, {at});')
-            if it.get("out_at") is not None:
-                tl.append(f'tl.to("#{iid}", {{ opacity: 0, duration: 0.25 }}, {rel(it["out_at"])});')
+        items_html = zone_items(sid, z, t0, t1, tl)
         zh = 1920 if z.get("full") else int(z.get("height", 880))
         zbg = f'background: linear-gradient(135deg, {brand.get("bg", "#F3F1EE")} 0%, {brand.get("bg", "#F3F1EE")} 55%, {brand.get("soft", "#FDEAE6")} 78%, {brand.get("soft2", "#F5C2C9")} 100%);' if z.get("gradient") else ""
         body.append(f'<div id="zone" style="height:{zh}px;{zbg}">{"".join(items_html)}</div>')
@@ -362,6 +383,28 @@ def scene_html(sid, sc):
             tl.append(f'tl.from("#zone", {{ y: -40, opacity: 0, duration: 0.35, ease: "power3.out" }}, 0);')
         if z.get("out") is not None:
             tl.append(f'tl.to("#zone", {{ opacity: 0, duration: 0.3, ease: "power2.in" }}, {rel(z["out"])});')
+    elif layout == "Y":
+        z = sc.get("zone", {})
+        brand = sb.get("brand", {})
+        t0, t1 = float(sc["start"]), float(sc["end"])
+        body.append(f'<style>#root {{ --z-bg: {brand.get("bg", "#F3F1EE")}; --z-ink: {brand.get("ink", "#0F0D0D")}; --z-accent: {brand.get("accent", "#D40F30")}; --z-font: {brand.get("font", "\"Helvetica Neue\", Helvetica, Arial, sans-serif")}; }}</style>')
+        def rel(t):
+            return r3(max(0, resolve_at(t, t0, t1) - t0))
+        # the speaker is a clip inside the scene, so the scene timeline can move it
+        pos = sc.get("face_pos", sb.get("face_pos_y", "50% 50%"))
+        body.append(f'<div class="ybg" id="{sid}-bg"></div>')
+        body.append(f'<div class="yface" id="{sid}-face"><video id="{sid}-face-v" class="clip" src="{esc(SPEAKER)}" data-start="0" data-duration="{r3(min(slot, DURATION - float(sb.get("freeze_tail", 0)) - t0))}" data-media-start="{r3(t0)}" data-track-index="0" muted playsinline style="object-position:{pos}"></video></div>')
+        m = int(sc.get("face_margin", 60))
+        SPOTS = {"full": (0, 0, 1.0, 0), "tl": (m, m, 0.3, 36), "tr": (W - W * 0.3 - m, m, 0.3, 36), "bl": (m, H - H * 0.3 - m, 0.3, 36), "br": (W - W * 0.3 - m, H - H * 0.3 - m, 0.3, 36),
+                 "left": (m, (H - H * 0.5) / 2, 0.5, 36), "right": (W - W * 0.5 - m, (H - H * 0.5) / 2, 0.5, 36), "center": ((W - W * 0.5) / 2, (H - H * 0.5) / 2, 0.5, 36)}
+        for mv in sc.get("face", []):
+            spot = mv.get("pos", "full")
+            if spot == "hidden":
+                tl.append(f'tl.to("#{sid}-face", {{ opacity: 0, duration: 0.3 }}, {rel(mv.get("at", t0))});'); continue
+            x, y, sc_, rad = SPOTS[spot]
+            tl.append(f'tl.to("#{sid}-face", {{ x: {r3(x)}, y: {r3(y)}, scale: {sc_}, borderRadius: "{int(rad / max(sc_, 0.01))}px", opacity: 1, duration: {mv.get("duration", 0.6)}, ease: "power3.inOut" }}, {rel(mv.get("at", t0))});')
+        items_html = zone_items(sid, z, t0, t1, tl)
+        body.append(f'<div id="zone" class="y">{"".join(items_html)}</div>')
     elif layout == "F":
         ov = sc.get("overlay")
         if ov:
@@ -432,7 +475,7 @@ def scene_html(sid, sc):
     return f"""<!doctype html>
 <html lang="{LANG}"><head><meta charset="UTF-8" /><!-- generated by scripts/build-reel.py: edit storyboard.json, not this file --></head>
 <body><template>
-<style>{SCENE_CSS}</style>
+<style>{SCENE_CSS.replace('__W__', str(W)).replace('__H__', str(H))}</style>
 <div id="root" data-composition-id="{sid}" data-width="{W}" data-height="{H}">
 {chr(10).join(body)}
 </div>
@@ -507,7 +550,7 @@ def captions(scenes):
         layout = scene["layout"]
         top = scene.get("cap_top", 1140 if (layout == "F" and scene.get("keyword")) else CAP_TOP[layout])
         zz = scene.get("zone") or {}
-        on_zone = " on-zone" if (layout == "S" and (not zz.get("full") or zz.get("in") is not None) and scene.get("cap_on_zone", True)) else ""
+        on_zone = " on-zone" if (layout == "S" and (not zz.get("full") or zz.get("in") is not None) and scene.get("cap_on_zone", True)) else (" on-y" if layout == "Y" else "")
         parts, kws = [], []
         for j, w in enumerate(ch):
             is_kw = kw_norm(w["text"]) in KEYWORDS
@@ -529,13 +572,14 @@ def captions(scenes):
 CAP_CSS_KIT = """.cap { position: absolute; left: 60px; right: 60px; z-index: 5; text-align: center; font: 900 var(--size-cap)/1.05 var(--font-display); text-transform: uppercase; color: #fff; letter-spacing: -.01em; -webkit-text-stroke: 1.5px #000; text-shadow: 0 0 2px #000, 0 4px 0 #000, 3px 0 0 #000, -3px 0 0 #000, 0 -3px 0 #000; }
       .cap span { display: inline-block; background: rgba(23, 19, 14, .8); padding: 12px 28px; border-radius: 14px; }
       .cap em { font-style: normal; color: var(--accent); }"""
-CAP_CSS_POP = f""".cap {{ position: absolute; left: 80px; right: 80px; z-index: 5; text-align: center; font: 700 {CAP_SIZE}px/1.08 {CAP_FONT}; color: #fff; letter-spacing: -.01em; text-shadow: 0 3px 6px rgba(0,0,0,.55), 0 8px 24px rgba(0,0,0,.45); }}
-      .cap span {{ display: inline-block; max-width: 920px; }}
+CAP_CSS_POP = f""".cap {{ position: absolute; left: {80 if W < H else 260}px; right: {80 if W < H else 260}px; z-index: 5; text-align: center; font: 700 {CAP_SIZE}px/1.08 {CAP_FONT}; color: #fff; letter-spacing: -.01em; text-shadow: 0 3px 6px rgba(0,0,0,.55), 0 8px 24px rgba(0,0,0,.45); }}
+      .cap span {{ display: inline-block; max-width: {920 if W < H else 1400}px; }}
       .cap b {{ font-weight: inherit; display: inline-block; }}
       .cap em {{ display: inline-block; font-style: normal; font-size: 1.55em; line-height: 1; color: {CAP_ACCENT}; text-shadow: 0 3px 6px rgba(0,0,0,.5), 0 10px 26px rgba(0,0,0,.45); vertical-align: -0.08em; }}"""
 CAP_CSS_POP += f"""
       .cap.on-zone {{ color: {sb.get("brand", {}).get("ink", "#0F0D0D")}; text-shadow: none; }}
-      .cap.on-zone em {{ text-shadow: none; }}"""
+      .cap.on-zone em {{ text-shadow: none; }}
+      .cap.on-y span {{ background: rgba(10,10,10,.62); padding: 10px 26px 12px; border-radius: 16px; text-shadow: none; }}"""
 CAP_CSS = CAP_CSS_POP if CAP_STYLE == "pop" else CAP_CSS_KIT
 
 
@@ -636,7 +680,7 @@ def build():
     print(f"{len(sb['scenes'])} scenes, {len(caps)} captions, {len(face_clips)} speaker clips → index.html + assets/plan.json")
 
 
-LAYOUT_NATE = {"C": "split", "B": "split", "D": "paper", "F": "face", "S": "split"}
+LAYOUT_NATE = {"C": "split", "B": "split", "D": "paper", "F": "face", "S": "split", "Y": "face"}
 
 
 def write_plan(scenes, caps):
@@ -674,6 +718,8 @@ def write_plan(scenes, caps):
         plan_scenes.append(entry)
         if sc["layout"] not in ("F", "S") or sc.get("tag") or sc.get("keyword"):
             events.append({"time": round(start + 0.1, 3), "type": "scene-enter", "visual": sc["id"], "anchor": entry["anchor"]})
+        for mv in sc.get("face", []):
+            events.append({"time": round(min(resolve_at(mv.get("at", start), start, end), end - 0.01), 3), "type": "face-move", "visual": sc["id"], "anchor": str(mv.get("at", ""))})
         for it in ((sc.get("overlay") or {}).get("items", []) + (sc.get("zone") or {}).get("items", [])):
             t = resolve_at(it.get("at", start), start, end)
             events.append({"time": round(min(t, end - 0.01), 3), "type": "overlay-pop", "visual": sc["id"], "anchor": str(it.get("at", ""))})

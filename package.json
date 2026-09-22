@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "npx --yes hyperframes@0.8.42 preview",
     "check": "npx --yes hyperframes@0.8.42 check",
-    "render": "npx --yes hyperframes@0.8.42 render --output renders/reel.mp4",
+    "render": "npx --yes hyperframes@0.8.42 render --sdr --output renders/reel.mp4",
     "publish": "npx --yes hyperframes@0.8.42 publish",
     "snapshot": "npx --yes hyperframes@0.8.42 snapshot",
     "preflight": "node scripts/preflight.mjs .",

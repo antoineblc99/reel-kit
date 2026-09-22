@@ -101,7 +101,13 @@ Nothing is uploaded or published without the user's explicit "ok" on the caption
 Layouts: **F** full-frame face, optional `overlay` (text, image, chevrons) or CTA card `keyword` · **S** Nate's split: a screen
 zone on top (0→880 px, brand colors) and the face below; `zone.items` of type `card`, `badge`, `stamp`, `image`, `video`,
 `big`, `check`, `logo`, `photo`, `chevrons`, `line`; `zone.full` + `in` = a full-frame end screen that curtains down over the
-face · **C / B / D**: the paper look of `DESIGN.md` (face top + paper bottom, paper top + face box, full paper).
+face · **C / B / D**: the paper look of `DESIGN.md` (face top + paper bottom, paper top + face box, full paper) ·
+**Y** (16:9, needs `"format": "youtube"` at the top of the storyboard, 1920×1080): the speaker fills the frame and **moves**
+on word anchors, `"face": [{"pos": "br", "at": "w:right"}, {"pos": "tl", "at": "w:left"}, {"pos": "full", "at": 12}]` with
+`full`, `tl`, `tr`, `bl`, `br`, `left`, `right`, `center`, `hidden`; the same `zone.items` as S, positioned in 1920×1080, plus
+`"phone": true` on a `video` item (9:16 clip in a phone frame), `"tilt": 18` (3D angle) and `"from": "far"` (flies in from the
+back), `"x"`/`"w"` on `big` to put it on one side; captions sit on a dark pill at the bottom. Made for a YouTube intro where
+each sentence triggers what it describes, edited by the kit itself.
 Every timed value accepts a word anchor: `"at": "w:word"` = the start of that word in the transcript. Scenes must start on a
 word (Nate's validator wants an anchor within −0.15 / +0.2 s); a scene with no visual event for more than 2.2 s carries a
 `holdReason`. `caption_style`: `kit` (pill, uppercase) or `pop` (Helvetica Neue Bold, keyword ×1.55 in the accent color,
@@ -122,7 +128,7 @@ npm run check · npm run preflight · npm run snapshot -- --at 1.5,6 --no-end
 node .claude/skills/short-form-edit/scripts/validate-plan.mjs .      # Nate's plan gate
 node .claude/skills/short-form-edit/scripts/validate-footage.mjs .   # when B-roll is used
 npm run dev                              # Studio, in the background; give the user the exact URL printed
-npm run render · npm run frames
+npm run render (always --sdr: an HDR source would switch HyperFrames to its HDR pipeline, which ghosts hidden layers) · npm run frames
 node scripts/sync-codex-skills.mjs       # after any change in .claude/skills/
 ```
 

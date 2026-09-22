@@ -13,8 +13,11 @@ These two JSON files are the ones validate-plan.mjs and build-reel.py read.
 The cut is a trim/atrim + concat (never a select mask: it would ignore the order of the takes). Boundaries are
 frame-aligned so that video, sound and words stay in sync.
 """
-import argparse, json, subprocess
+import argparse, json, subprocess, sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sdr import sdr_vf, SDR_TAGS
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--derush", default="assets/derush")
@@ -38,10 +41,10 @@ for s in segs:
     frames += fb - fa
 trims = ";".join(f"[0:v]trim=start_frame={p['fa']}:end_frame={p['fb']},setpts=PTS-STARTPTS[v{i}];"
                  f"[0:a]atrim=start={p['fa'] / FPS}:end={p['fb'] / FPS},asetpts=PTS-STARTPTS[a{i}]" for i, p in enumerate(plan))
-concat = "".join(f"[v{i}][a{i}]" for i in range(len(plan))) + f"concat=n={len(plan)}:v=1:a=1[v][a0];[a0]loudnorm=I=-16:TP=-1.5:LRA=11[a]"
+concat = "".join(f"[v{i}][a{i}]" for i in range(len(plan))) + f"concat=n={len(plan)}:v=1:a=1[v0][a0];[v0]{sdr_vf(raw)}[v];[a0]loudnorm=I=-16:TP=-1.5:LRA=11[a]"
 print(f"cut: {len(plan)} takes → {frames} frames ({frames / FPS:.2f} s) · order {' · '.join(p['name'] for p in plan)}")
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(raw), "-filter_complex", f"{trims};{concat}",
-                "-map", "[v]", "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(FPS),
+                "-map", "[v]", *SDR_TAGS, "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", str(FPS),
                 "-g", str(FPS), "-keyint_min", str(FPS), "-movflags", "+faststart", "-an", str(ASSETS / "speaker.mp4"),
                 "-map", "[a]", "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", str(ASSETS / "reel-audio.wav")], check=True)
 duration = round(float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
