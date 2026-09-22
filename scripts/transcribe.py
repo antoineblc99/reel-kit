@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """transcribe.py — transcription in the common format of Nate Herk's kit. ElevenLabs Scribe by default, local WhisperX as fallback.
 
-Usage: python3 scripts/transcribe.py <rush> [--out assets/derush/raw.json] [--engine scribe|whisperx] [--lang fr]
+Usage: python3 scripts/transcribe.py <rush> [--out assets/derush/raw.json] [--engine scribe|whisperx] [--lang auto|fr|en|…]
        [--segments segments.json]  # [{in,out}] in seconds: words are sorted by take. Scribe: a single call for the whole
                                    # rush. WhisperX: each take transcribed on its own (Whisper on the whole file swallows
                                    # retakes and can skip a take, measured 22/09 on a real talking-head rush).
@@ -11,7 +11,7 @@ Output: { text, audio_duration_secs, language, model, words: [{ text, start, end
 This is the format Nate documents (docs/TOOLS-AND-API-KEYS.md) and that takes.py then stage.py read.
 
 Scribe: `ELEVENLABS_API_KEY` in the environment (e.g. ~/.exports.sh), $0.22 per hour of audio. Measured 22/09: every retake
-kept, word onsets within ±0.03 s. It writes numbers in words: converted to digits here (≥ 10, and « pour cent » → %).
+kept, word onsets within ±0.03 s. In French it writes numbers in words: converted to digits here (≥ 10, « pour cent » → %); other languages are left as they are.
 WhisperX: env ~/.reel-kit/venv (scripts/setup-whisperx.sh), CPU, French wav2vec2 alignment.
 """
 import argparse, json, os, subprocess, sys, tempfile, urllib.error, urllib.request, uuid, warnings
@@ -21,7 +21,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("media")
 ap.add_argument("--out")
 ap.add_argument("--engine", choices=["scribe", "whisperx"])
-ap.add_argument("--lang", default="fr")
+ap.add_argument("--lang", default="auto", help="ISO code (fr, en, es…) or auto: Scribe detects it; WhisperX detects it on the first chunk")
 ap.add_argument("--model", default=None, help="scribe_v2 (Scribe) or large-v3-turbo (WhisperX)")
 ap.add_argument("--segments", help="JSON [{in,out}]: words sorted by take")
 ap.add_argument("--keep-number-words", action="store_true")
@@ -48,7 +48,9 @@ def run_scribe(model):
     tmp = Path(tempfile.mkdtemp(prefix="scribe-")) / "audio.m4a"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vn", "-ac", "1", "-ar", "16000", "-c:a", "aac", "-b:a", "64k", str(tmp)], check=True)
     b = uuid.uuid4().hex
-    fields = {"model_id": model, "timestamps_granularity": "word", "diarize": "false", "tag_audio_events": "false", "language_code": args.lang}
+    fields = {"model_id": model, "timestamps_granularity": "word", "diarize": "false", "tag_audio_events": "false"}
+    if args.lang != "auto":
+        fields["language_code"] = args.lang
     body = b"".join(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode() for k, v in fields.items())
     body += f'--{b}\r\nContent-Disposition: form-data; name="file"; filename="audio.m4a"\r\nContent-Type: audio/mp4\r\n\r\n'.encode() + tmp.read_bytes() + f"\r\n--{b}--\r\n".encode()
     req = urllib.request.Request("https://api.elevenlabs.io/v1/speech-to-text", data=body,
@@ -60,6 +62,8 @@ def run_scribe(model):
         sys.exit(f"Scribe HTTP {e.code}: {e.read().decode()[:400]}")
     words = [{"text": w["text"].strip(), "start": float(w["start"]), "end": float(w["end"])} for w in d["words"] if w.get("type") == "word" and w["text"].strip()]
     dur = float(d.get("audio_duration_secs") or (words[-1]["end"] if words else 0))
+    global LANG
+    LANG = (d.get("language_code") or args.lang or "")[:2].lower() if args.lang == "auto" else args.lang
     if slices:
         kept = []
         for w in words:
@@ -76,14 +80,20 @@ def run_whisperx(model):
     import whisperx
     audio = whisperx.load_audio(str(src))
     dur = len(audio) / 16000
-    asr = whisperx.load_model(model, args.device, compute_type="int8", language=args.lang, vad_method="silero", threads=args.threads)
-    align_model, meta = whisperx.load_align_model(language_code=args.lang, device=args.device)
+    lang = None if args.lang == "auto" else args.lang
+    asr = whisperx.load_model(model, args.device, compute_type="int8", language=lang, vad_method="silero", threads=args.threads)
+    if lang is None:  # detect on the first 30 s, then keep it for every slice
+        lang = asr.detect_language(audio[: 16000 * 30]) if hasattr(asr, "detect_language") else asr.transcribe(audio[: 16000 * 30], batch_size=8)["language"]
+        print(f"language detected: {lang}")
+    global LANG
+    LANG = lang
+    align_model, meta = whisperx.load_align_model(language_code=lang, device=args.device)
     words = []
     for t0, t1, k in (slices or [(0.0, dur, None)]):
         part = audio[int(t0 * 16000): int(t1 * 16000)]
         if len(part) < 1600:
             continue
-        res = asr.transcribe(part, batch_size=8, language=args.lang)
+        res = asr.transcribe(part, batch_size=8, language=lang)
         if not res["segments"]:
             continue
         aligned = whisperx.align(res["segments"], align_model, meta, part, args.device, return_char_alignments=False)
@@ -183,7 +193,8 @@ if engine == "scribe":
     words, dur, model = run_scribe(args.model or "scribe_v2")
 else:
     words, dur, model = run_whisperx(args.model or "large-v3-turbo")
-if not args.keep_number_words:
+LANG = LANG if "LANG" in globals() and LANG else (args.lang if args.lang != "auto" else "")
+if not args.keep_number_words and LANG == "fr":  # the spelled-out-number converter knows French only
     words = numbers_to_digits(words)
 for w in words:
     w["start"], w["end"], w["type"] = round(float(w["start"]), 3), round(float(w["end"]), 3), "word"
@@ -192,6 +203,6 @@ for a, b in zip(words, words[1:]):  # never overlap
         a["end"] = b["start"]
 
 out.parent.mkdir(parents=True, exist_ok=True)
-out.write_text(json.dumps({"text": " ".join(w["text"] for w in words), "audio_duration_secs": round(dur, 3), "language": args.lang,
+out.write_text(json.dumps({"text": " ".join(w["text"] for w in words), "audio_duration_secs": round(dur, 3), "language": LANG or args.lang,
                            "model": model, "words": words}, ensure_ascii=False, indent=1))
-print(f"{len(words)} words · {dur:.1f} s · {out}")
+print(f"{len(words)} words · {dur:.1f} s · language {LANG or args.lang} · {out}")

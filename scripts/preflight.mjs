@@ -192,7 +192,7 @@ if (!rootStart) {
 } else {
   if (videoWithDataStart) {
     // reel-kit: rule inherited from hyperframes 0.7. Since 0.8, root data-start="0" + <video data-start>
-    // passes `check` and renders correctly (reel-plug-stories, 28/08). Warning, not blocking.
+    // passes `check` and renders correctly (verified on real projects). Warning, not blocking.
     warn(
       "root_data_start_conflicts_with_video",
       `root has data-start="${rootStart}" AND an inline <video ${readAttr(videoWithDataStart.raw, "id") ? `id="${readAttr(videoWithDataStart.raw, "id")}"` : ""} data-start=...>. OK since hyperframes 0.8; if the render comes out black, remove data-start from the root.`

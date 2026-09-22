@@ -66,7 +66,7 @@ Nothing is uploaded or published without the user's explicit "ok" on the caption
   "caption_style": "pop", "caption_font": "\"Helvetica Neue\", Helvetica, Arial, sans-serif", "caption_accent": "#D40F30", "caption_size": 62,
   "caption_max_words": 3, "keywords": ["salaries", "managers", "40 825"], "lexicon": {"cloud": "Claude"},
   "brand": {"bg": "#F3F1EE", "ink": "#0F0D0D", "accent": "#D40F30", "font": "\"Helvetica Neue\", Helvetica, Arial, sans-serif"},
-  "freeze_tail": 3.0, "face_pos_s": "50% 72%",
+  "locale": "fr-FR", "freeze_tail": 3.0, "face_pos_s": "50% 72%",
   "scenes": [
     { "layout": "S", "start": 0, "end": 4.5, "holdReason": "the duel stays on screen until the source", "zone": { "out": 4.35, "items": [
         { "type": "card", "title": "Engineering<br>school", "logos": ["assets/brand/a.png", "assets/brand/b.png"], "cols": 2, "x": 40, "y": 80, "w": 480, "h": 440, "from": "left", "at": 0.15 },
@@ -96,7 +96,9 @@ Every timed value accepts a word anchor: `"at": "w:word"` = the start of that wo
 word (Nate's validator wants an anchor within −0.15 / +0.2 s); a scene with no visual event for more than 2.2 s carries a
 `holdReason`. `caption_style`: `kit` (pill, uppercase) or `pop` (Helvetica Neue Bold, keyword ×1.55 in the accent color,
 word-by-word reveal). `lexicon` fixes one word → one word (proper nouns). `keywords` are matched ignoring case, punctuation
-and elisions ("d'ingénieur" matches "ingénieur", "40 825" matches "40 825").
+and elisions ("d'ingénieur" matches "ingénieur", "40 825" matches "40 825"). `locale` (default `en-US`) formats the numbers in
+count-ups and sets the HTML `lang`; `lang` overrides the latter. Transcription detects the language on its own
+(`transcribe.py --lang xx` forces it); only French spelled-out numbers are converted to digits.
 
 ## Commands
 

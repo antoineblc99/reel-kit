@@ -20,7 +20,13 @@ You need Node 20+, ffmpeg, Python 3.10+ (with numpy) and a transcription engine:
   so a cent per reel. Keeps every retake, word timing within 30 ms.
 - or **WhisperX**, local and free: `./setup.sh --whisperx` (about 2 GB of models, CPU).
 
-For gate 7, connect PlugKit's MCP server to your agent (Claude Code: `claude mcp add`, Codex: `~/.codex/config.toml`).
+For gate 7, connect PlugKit's MCP server to your agent: in the PlugKit dashboard, open **MCP** and copy the command for
+Claude Code (`claude mcp add --transport http … plugkit <url>`), or the JSON config for Codex (`~/.codex/config.toml`),
+Cursor or VS Code. ChatGPT users run the kit through Codex, the same MCP config applies.
+
+Any language Scribe or WhisperX understands works; the language is detected automatically (`--lang fr` to force it).
+In French, spelled-out numbers become digits on screen ("quarante mille" → 40 000). Set `"locale"` in `storyboard.json`
+for number formatting in count-ups (`en-US` by default, `fr-FR` for a French reel).
 
 ## A video
 
