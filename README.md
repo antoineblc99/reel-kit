@@ -8,50 +8,55 @@ Nate Herk's `short-form-edit` skill kept verbatim, publication goes through Plug
 rush.mov ──► 1 framing ──► 2 rough cut ──► 3 captions ──► 4 beats + assets ──► 5 opening ──► 6 animatic → final ──► 7 publish
 ```
 
-## Setup, once per machine
+## Start here
+
+Five steps, about ten minutes the first time. You never write code.
+
+**1. Get the kit.** Open a terminal and run:
 
 ```bash
-git clone https://github.com/antoineblc99/reel-kit && cd reel-kit && ./setup.sh
+git clone https://github.com/antoineblc99/reel-kit ~/reel-kit && cd ~/reel-kit && ./setup.sh
 ```
 
-Or let the agent do it: open Claude Code (or Codex) anywhere and paste
+`setup.sh` checks Node 20+, ffmpeg, Python 3.10+ and numpy, and prints the install command for whatever is missing.
+No terminal? Open Claude Code or Codex in any folder and paste this instead:
 
 > Clone https://github.com/antoineblc99/reel-kit into ~/reel-kit, run ./setup.sh, and walk me through whatever is missing.
 
-`setup.sh` names each missing tool with its install command. Without a transcription key it explains the two options
-below and stops; the agent guides you, you create the key yourself and put it in a `.env` file in the folder
-(`ELEVENLABS_API_KEY=…`), never in the chat.
-
-You need Node 20+, ffmpeg, Python 3.10+ (with numpy) and a transcription engine:
-
-- **ElevenLabs Scribe** (recommended): `export ELEVENLABS_API_KEY=...` in your shell profile. About 0.22 $ per hour of audio,
-  so a cent per reel. Keeps every retake, word timing within 30 ms.
-- or **WhisperX**, local and free: `./setup.sh --whisperx` (about 2 GB of models, CPU).
-
-For gate 7, connect PlugKit's MCP server to your agent: in the PlugKit dashboard, open **MCP** and copy the command for
-Claude Code (`claude mcp add --transport http … plugkit <url>`), or the JSON config for Codex (`~/.codex/config.toml`),
-Cursor or VS Code. ChatGPT users run the kit through Codex, the same MCP config applies.
-
-Any language Scribe or WhisperX understands works; the language is detected automatically (`--lang fr` to force it).
-In French, spelled-out numbers become digits on screen ("quarante mille" → 40 000). Set `"locale"` in `storyboard.json`
-for number formatting in count-ups (`en-US` by default, `fr-FR` for a French reel).
-
-## A video
+**2. Add a transcription key.** In the kit folder:
 
 ```bash
-cp -R ~/reel-kit ~/videos/2026-09-22-my-reel && cd ~/videos/2026-09-22-my-reel
+./setup.sh --key
+```
+
+It asks for your [ElevenLabs key](https://elevenlabs.io/app/settings/api-keys) and nothing shows on screen while you paste.
+The key lands in a git-ignored `.env`. About 0.22 $ per hour of audio, so a cent per reel, and it keeps every retake.
+No account? `./setup.sh --whisperx` installs a free local engine instead, slower, about 2 GB of models.
+
+**3. Connect PlugKit,** so the agent can publish for you. In the PlugKit dashboard open the **MCP** page and copy the
+command for Claude Code, or the JSON config for Codex, Cursor or VS Code. Paste it, restart your agent, done.
+Skip this step if you only want the edit and will publish by hand.
+
+**4. Start a video.** Copy the kit into a new folder, one folder per video, and open your agent there:
+
+```bash
+cp -R ~/reel-kit ~/videos/my-first-reel && cd ~/videos/my-first-reel
 claude        # or: codex
 ```
 
-Then paste a prompt like:
+**5. Hand it your rush** and paste a prompt like this one:
 
 > Edit this rush into a 9:16 reel following AGENTS.md, gate by gate, and stop at each gate for my ok.
-> Reference reel: <file or URL>. Brand: <site URL or logo>. CTA: comment "KEYWORD". Rush: <path>
+> Reference reel: <file or URL>. Brand: <site URL or logo>. CTA: comment "KEYWORD". Rush: <path to your file>
 
-The agent reads `AGENTS.md`, runs `scripts/takes.py` on the rush, and comes back with the take list. That is gate 2.
+The agent reads `AGENTS.md`, cuts the rush and comes back with the list of takes it kept and dropped. That is gate 2,
+and you answer in plain sentences, like you would to an editor. Six gates later the reel is rendered and published.
 
-The same kit edits a 16:9 YouTube intro (`"format": "youtube"` in `storyboard.json`, layout `Y`): the speaker moves to a
+The same kit edits a 16:9 YouTube video (`"format": "youtube"` in `storyboard.json`, layout `Y`): the speaker moves to a
 corner on a word, clips play in tilted phone frames, cards and numbers pop where the sentence says so.
+
+Any language Scribe or WhisperX understands works, detected automatically. In French, spelled-out numbers become digits
+on screen. `"locale"` in `storyboard.json` sets number formatting (`en-US` by default).
 
 ## What is inside
 
