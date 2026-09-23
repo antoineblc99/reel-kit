@@ -33,10 +33,26 @@ else
   say "     A) ElevenLabs Scribe (recommended, ~1 cent per reel): create a key at https://elevenlabs.io/app/settings/api-keys"
   say "        (any plan, the key needs the speech_to_text permission), then put it in a file named .env in this folder:"
   say "            ELEVENLABS_API_KEY=your_key"
+  say "        the safe way, nothing shows on screen:   ./setup.sh --key"
   say "        or in your shell profile: export ELEVENLABS_API_KEY=your_key   (then restart your agent)"
   say "        Do it yourself: never paste the key into a chat with an agent."
   say "     B) WhisperX, local and free, no account: ./setup.sh --whisperx   (about 2 GB of models, slower, CPU)"
   ok=0
+fi
+
+if [ "${1:-}" = "--key" ]; then
+  # the key is typed blind and lands in .env, never in the terminal, the history or a screen recording
+  printf '  paste your ElevenLabs key (nothing will show): '
+  stty -echo 2>/dev/null; IFS= read -r _K; stty echo 2>/dev/null; printf '\n'
+  if [ -z "$_K" ]; then say "nothing pasted, .env untouched"; exit 1; fi
+  _N=${#_K}
+  touch .env
+  grep -v '^ELEVENLABS_API_KEY=' .env 2>/dev/null > .env.tmp || true
+  printf 'ELEVENLABS_API_KEY=%s\n' "$_K" >> .env.tmp && mv .env.tmp .env && chmod 600 .env
+  _K=""
+  say "ok   key written to .env ($_N characters, never shown), readable by you only"
+  say "     .env is in .gitignore: it never leaves this machine"
+  exec "$0"
 fi
 
 if [ "${1:-}" = "--whisperx" ]; then
