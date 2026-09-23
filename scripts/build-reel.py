@@ -40,9 +40,10 @@ LOCALE = sb.get("locale", "en-US")   # number formatting in count-ups: "40 825" 
 LANG = sb.get("lang", LOCALE.split("-")[0])
 CAP_TOP = {"C": 850, "B": 940, "D": 1690, "F": 1500, "S": 780, "Y": 930}
 CAP_MAX_WORDS = int(sb.get("caption_max_words", 4))
-CAP_STYLE = sb.get("caption_style", "kit")          # "kit" = ink pill, uppercase · "pop" = Helvetica Neue Bold, keyword enlarged
+CAP_STYLE = sb.get("caption_style", "pop")          # "pop" = Helvetica Neue Bold, keyword enlarged · "kit" = ink pill, uppercase · "nate" = dark pill
 CAP_FONT = sb.get("caption_font", '"Helvetica Neue", Helvetica, Arial, sans-serif')
-CAP_ACCENT = sb.get("caption_accent", "var(--accent)")
+# pop keeps its keywords in the caption color unless the storyboard asks for an accent; nate needs one for its keyword box
+CAP_ACCENT = sb.get("caption_accent", "var(--accent)" if CAP_STYLE == "nate" else "currentColor")
 CAP_SIZE = int(sb.get("caption_size", 64))
 
 # ----------------------------------------------------------------------------- helpers
