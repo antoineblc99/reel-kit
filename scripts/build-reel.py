@@ -177,12 +177,23 @@ SCENE_CSS = """
 .zst { position: absolute; }
 .zst .kick { font-weight: 800; font-size: 26px; letter-spacing: .18em; text-transform: uppercase; color: #8a857f; }
 .zst .big { margin-top: 20px; font-weight: 800; font-size: 104px; line-height: 1.02; letter-spacing: -.038em; color: var(--z-ink, #17130e); }
-.zst .big em { font-style: normal; color: var(--z-accent, #E2604A); }
+.zst .big em { font-style: normal; color: var(--z-accent-ink, #D3553F); }   /* the accent darkened: text on a light world must clear 3:1 */
 .zst .sub2 { margin-top: 20px; font-weight: 500; font-size: 42px; line-height: 1.2; color: #55504a; }
 .zpill { position: absolute; display: flex; align-items: center; gap: 20px; padding: 20px 24px 20px 34px; border-radius: 24px; background: rgba(255,255,255,.68); border: 1.5px solid rgba(255,255,255,.9); box-shadow: 0 24px 60px rgba(23,19,14,.16); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); font-weight: 700; font-size: 36px; letter-spacing: -.01em; color: var(--z-ink, #17130e); }
 .zpill .arw { width: 56px; height: 56px; border-radius: 17px; background: var(--z-accent, #E2604A); color: #fff; display: grid; place-items: center; font-size: 28px; font-weight: 800; }
 .ztag { position: absolute; display: flex; align-items: center; gap: 12px; padding: 14px 26px; border-radius: 999px; background: rgba(255,255,255,.72); border: 1.5px solid rgba(255,255,255,.9); box-shadow: 0 16px 40px rgba(23,19,14,.14); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-weight: 700; font-size: 30px; color: var(--z-ink, #17130e); }
 .ztag .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--z-accent, #E2604A); }
+.ztag .lg { width: 40px; height: 40px; object-fit: contain; }
+.ztag.chip { padding: 20px; border-radius: 50%; }
+.ztag.chip .lg { width: 52px; height: 52px; }
+.zlc { position: absolute; display: flex; align-items: center; gap: 26px; padding: 26px 36px 26px 26px; border-radius: 28px; background: rgba(255,255,255,.74); border: 1.5px solid rgba(255,255,255,.92); box-shadow: 0 26px 64px rgba(23,19,14,.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.zlc .mk { width: 96px; height: 96px; border-radius: 26px; background: #fff; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(23,19,14,.12); flex: none; }
+.zlc .mk img { width: 64px; height: 64px; object-fit: contain; }
+.zlc .tx { display: flex; flex-direction: column; gap: 12px; }
+.zlc .nm { font-weight: 800; font-size: 46px; letter-spacing: -.025em; line-height: 1; color: var(--z-ink, #17130e); }
+.zlc .rw { display: flex; align-items: center; gap: 10px; }
+.zlc .ch { font-weight: 700; font-size: 27px; color: #55504a; background: rgba(23,19,14,.07); border-radius: 999px; padding: 8px 18px; white-space: nowrap; }
+.zlc .bd { font-weight: 800; font-size: 19px; letter-spacing: .12em; color: #fff; background: var(--z-accent, #E2604A); border-radius: 999px; padding: 8px 14px; white-space: nowrap; }
 .zcas { position: absolute; perspective: 2200px; }
 .zcas .cd { position: absolute; top: 0; overflow: hidden; background: #000; border: 3px solid rgba(255,255,255,.55); box-shadow: 0 34px 90px rgba(23,19,14,.34); }
 .zcas .cd video, .zcas .cd img { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -349,8 +360,24 @@ def zone_items(sid, z, t0, t1, tl):
             items_html.append(f'<div class="zpill" id="{iid}" style="left:{x}px;top:{y}px">{rich(it["text"])}{arw}</div>')
             tl.append(f'tl.from("#{iid}", {{ y: 30, opacity: 0, scale: 0.92, duration: 0.45, ease: "back.out(1.8)" }}, {at});')
         elif typ == "tag":
-            items_html.append(f'<div class="ztag" id="{iid}" style="left:{x}px;top:{y}px"><span class="dot"></span>{esc(it["text"])}</div>')
+            mark = f'<img class="lg" src="{esc(it["logo"])}" alt="">' if it.get("logo") else '<span class="dot"></span>'
+            round_only = it.get("logo") and not it.get("text")
+            items_html.append(f'<div class="ztag{" chip" if round_only else ""}" id="{iid}" style="left:{x}px;top:{y}px">{mark}{esc(it.get("text", ""))}</div>')
             tl.append(f'tl.from("#{iid}", {{ y: 26, opacity: 0, scale: 0.9, duration: 0.4, ease: "back.out(2)" }}, {at});')
+        elif typ == "logocard":
+            badge = f'<span class="bd" id="{iid}-bd">{esc(it["badge"])}</span>' if it.get("badge") else ""
+            chip = f'<span class="ch" id="{iid}-ch">{esc(it["chip"])}</span>' if it.get("chip") else ""
+            items_html.append(f'<div class="zlc" id="{iid}" style="left:{x}px;top:{y}px;{"width:" + str(it["w"]) + "px;" if it.get("w") else ""}">'
+                              f'<span class="mk" id="{iid}-mk"><img src="{esc(it["logo"])}" alt=""></span>'
+                              f'<span class="tx"><span class="nm">{esc(it["title"])}</span><span class="rw">{chip}{badge}</span></span></div>')
+            a = float(at)
+            tl.append(f'tl.from("#{iid}", {{ y: 54, opacity: 0, scale: 0.93, duration: 0.5, ease: "back.out(1.6)" }}, {at});')
+            tl.append(f'tl.from("#{iid}-mk", {{ scale: 0.45, rotation: -14, opacity: 0, duration: 0.45, ease: "back.out(2.6)" }}, {r3(a + 0.12)});')
+            if chip:
+                tl.append(f'tl.from("#{iid}-ch", {{ x: -26, opacity: 0, duration: 0.35, ease: "power3.out" }}, {r3(a + 0.26)});')
+            if badge:
+                tl.append(f'tl.from("#{iid}-bd", {{ scale: 0, opacity: 0, duration: 0.4, ease: "back.out(3)" }}, {r3(a + 0.42)});')
+                tl.append(f'tl.to("#{iid}-bd", {{ scale: 1.1, duration: 0.18, ease: "sine.inOut", repeat: 1, yoyo: true }}, {r3(a + 0.9)});')
         elif typ == "cascade":
             cw, ch = it.get("cw", 330), it.get("ch", 586)
             step, tilt, rise = it.get("step", 250), it.get("tilt", 24), it.get("rise", 26)
@@ -462,7 +489,7 @@ def scene_html(sid, sc):
         z = sc.get("zone", {})
         brand = sb.get("brand", {})
         t0, t1 = float(sc["start"]), float(sc["end"])
-        body.append(f'<style>#root {{ --z-bg: {brand.get("bg", "#FBFAF8")}; --z-ink: {brand.get("ink", "#17130e")}; --z-accent: {brand.get("accent", "#E2604A")}; --z-font: {brand.get("font", "\"Helvetica Neue\", Helvetica, Arial, sans-serif")}; }}</style>')
+        body.append(f'<style>#root {{ --z-bg: {brand.get("bg", "#FBFAF8")}; --z-ink: {brand.get("ink", "#17130e")}; --z-accent: {brand.get("accent", "#E2604A")}; --z-accent-ink: {brand.get("accent_ink", brand.get("accent", "#E2604A"))}; --z-font: {brand.get("font", "\"Helvetica Neue\", Helvetica, Arial, sans-serif")}; }}</style>')
         def rel(t):
             return r3(max(0, resolve_at(t, t0, t1) - t0))
         # the world: a mesh gradient or an image, drifting slowly so the frame is never frozen
