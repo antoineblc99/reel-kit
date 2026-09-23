@@ -102,12 +102,16 @@ Layouts: **F** full-frame face, optional `overlay` (text, image, chevrons) or CT
 zone on top (0→880 px, brand colors) and the face below; `zone.items` of type `card`, `badge`, `stamp`, `image`, `video`,
 `big`, `check`, `logo`, `photo`, `chevrons`, `line`; `zone.full` + `in` = a full-frame end screen that curtains down over the
 face · **C / B / D**: the paper look of `DESIGN.md` (face top + paper bottom, paper top + face box, full paper) ·
-**Y** (16:9, needs `"format": "youtube"` at the top of the storyboard, 1920×1080): the speaker fills the frame and **moves**
-on word anchors, `"face": [{"pos": "br", "at": "w:right"}, {"pos": "tl", "at": "w:left"}, {"pos": "full", "at": 12}]` with
-`full`, `tl`, `tr`, `bl`, `br`, `left`, `right`, `center`, `hidden`; the same `zone.items` as S, positioned in 1920×1080, plus
-`"phone": true` on a `video` item (9:16 clip in a phone frame), `"tilt": 18` (3D angle) and `"from": "far"` (flies in from the
-back), `"x"`/`"w"` on `big` to put it on one side; captions sit on a dark pill at the bottom. Made for a YouTube intro where
-each sentence triggers what it describes, edited by the kit itself.
+**Y** (16:9, needs `"format": "youtube"` at the top of the storyboard, 1920×1080): a full-frame world with the speaker as a
+**card that moves** inside it, in the shape of a YouTube intro where every sentence triggers what it describes.
+`"bg"`: `"mesh"` (a soft gradient built from the brand accent, slowly drifting) or a path to an image.
+`"face"`: `[{"pos": "left", "at": "w:mot"}, {"pos": "tl", "at": 11.3}, {"pos": "full", "at": 18}]` with `full`, `wide`,
+`left`, `right`, `tl`, `tr`, `bl`, `br`, `center`, `hidden`; the card is cut out of the 16:9 source with `clip-path`, so a
+portrait card never distorts the picture. `face_crop_y` `[x, y]` (0 to 1) frames the subject inside the card and
+`face_zoom_y` (1.22 by default) tightens it. `zone.items` adds to the S list: `glass` (frosted card, `icon`, `title`,
+`number`/`count`, `sub`, `bars`, `shot`, `dark`), `statement` (`kicker` + big `text` with `<em>` + `sub`), `pill` (glass
+button, `arrow`), `tag` (small rounded label), `cascade` (`src` list of clips fanned out in 3D, `cw`, `ch`, `step`, `tilt`,
+`rise`). `caption_style: "nate"` puts the captions on a dark pill with each keyword in an accent box.
 Every timed value accepts a word anchor: `"at": "w:word"` = the start of that word in the transcript. Scenes must start on a
 word (Nate's validator wants an anchor within −0.15 / +0.2 s); a scene with no visual event for more than 2.2 s carries a
 `holdReason`. `caption_style`: `kit` (pill, uppercase) or `pop` (Helvetica Neue Bold, keyword ×1.55 in the accent color,

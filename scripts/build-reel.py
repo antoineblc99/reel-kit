@@ -149,13 +149,46 @@ SCENE_CSS = """
 .zchevs { position: absolute; left: 0; right: 0; text-align: center; line-height: .55; }
 .zchev { display: block; font-size: 150px; font-weight: 900; color: var(--z-accent, #D40F30); }
 /* layout Y (16:9): the speaker lives in the scene and moves; the zone is the whole frame, transparent */
-.ybg { position: absolute; inset: 0; background: var(--z-bg, #F3F1EE); }
-.ybg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,.6), transparent 60%); }
+/* layout Y: a full-frame world, the speaker is a card that moves inside it */
+.ybg { position: absolute; inset: 0; overflow: hidden; background: var(--z-bg, #FBFAF8); }
+.ybg .fill { position: absolute; inset: -5%; background-size: cover; background-position: center; transform-origin: 50% 50%; }
+.ybg .mesh { background:
+  radial-gradient(ellipse 78% 62% at 14% 18%, color-mix(in srgb, var(--z-accent) 30%, transparent), transparent 62%),
+  radial-gradient(ellipse 66% 52% at 86% 12%, color-mix(in srgb, var(--z-accent) 16%, white), transparent 64%),
+  radial-gradient(ellipse 92% 72% at 74% 88%, color-mix(in srgb, var(--z-accent) 20%, transparent), transparent 66%),
+  radial-gradient(ellipse 60% 50% at 28% 92%, rgba(255,255,255,.75), transparent 62%),
+  linear-gradient(158deg, #FFFCFA 0%, color-mix(in srgb, var(--z-accent) 7%, #FAF4F0) 55%, color-mix(in srgb, var(--z-accent) 14%, #F6EAE3) 100%); }
+.yshadow { position: absolute; left: 0; top: 0; width: __W__px; height: __H__px; background: #100c0a; opacity: 0; box-shadow: 0 50px 120px rgba(23,19,14,.42); }
 .yface { position: absolute; left: 0; top: 0; width: __W__px; height: __H__px; overflow: hidden; transform-origin: 0 0; background: #000; }
 .yface video { width: 100%; height: 100%; object-fit: cover; }
+/* glass cards, statements, pills, 3D cascades */
+.zglass { position: absolute; border-radius: 30px; padding: 30px 34px 32px; background: rgba(255,255,255,.62); border: 1.5px solid rgba(255,255,255,.88); box-shadow: 0 30px 70px rgba(23,19,14,.16); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); }
+.zglass.dark { background: rgba(24,26,32,.74); border-color: rgba(255,255,255,.16); color: #fff; }
+.zglass .ico { width: 82px; height: 82px; border-radius: 22px; display: grid; place-items: center; font-size: 40px; font-weight: 800; background: var(--z-accent, #E2604A); color: #fff; box-shadow: 0 14px 32px rgba(226,96,74,.38); }
+.zglass .ttl { margin-top: 22px; font-family: inherit; font-style: normal; font-weight: 800; font-size: 52px; letter-spacing: -.025em; line-height: 1.02; }
+.zglass .num2 { margin-top: 18px; font-weight: 800; font-size: 96px; letter-spacing: -.04em; line-height: 1; color: var(--z-accent, #E2604A); font-variant-numeric: tabular-nums; }
+.zglass .sub { margin-top: 12px; font-family: inherit; font-style: normal; font-weight: 700; font-size: 20px; letter-spacing: .16em; text-transform: uppercase; color: #8a857f; }
+.zglass.dark .sub { color: rgba(255,255,255,.62); }
+.zglass .bars { margin-top: 24px; height: 150px; display: flex; align-items: flex-end; gap: 14px; }
+.zglass .bars i { display: block; flex: 1; background: var(--z-accent, #E2604A); border-radius: 8px 8px 3px 3px; transform-origin: 50% 100%; }
+.zglass .bars i:nth-child(odd) { opacity: .55; }
+.zglass .shot { margin-top: 22px; border-radius: 16px; overflow: hidden; box-shadow: 0 14px 34px rgba(23,19,14,.18); background: #fff; }
+.zglass .shot img { display: block; width: 100%; height: auto; }
+.zst { position: absolute; }
+.zst .kick { font-weight: 800; font-size: 26px; letter-spacing: .18em; text-transform: uppercase; color: #8a857f; }
+.zst .big { margin-top: 20px; font-weight: 800; font-size: 104px; line-height: 1.02; letter-spacing: -.038em; color: var(--z-ink, #17130e); }
+.zst .big em { font-style: normal; color: var(--z-accent, #E2604A); }
+.zst .sub2 { margin-top: 20px; font-weight: 500; font-size: 42px; line-height: 1.2; color: #55504a; }
+.zpill { position: absolute; display: flex; align-items: center; gap: 20px; padding: 20px 24px 20px 34px; border-radius: 24px; background: rgba(255,255,255,.68); border: 1.5px solid rgba(255,255,255,.9); box-shadow: 0 24px 60px rgba(23,19,14,.16); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); font-weight: 700; font-size: 36px; letter-spacing: -.01em; color: var(--z-ink, #17130e); }
+.zpill .arw { width: 56px; height: 56px; border-radius: 17px; background: var(--z-accent, #E2604A); color: #fff; display: grid; place-items: center; font-size: 28px; font-weight: 800; }
+.ztag { position: absolute; display: flex; align-items: center; gap: 12px; padding: 14px 26px; border-radius: 999px; background: rgba(255,255,255,.72); border: 1.5px solid rgba(255,255,255,.9); box-shadow: 0 16px 40px rgba(23,19,14,.14); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-weight: 700; font-size: 30px; color: var(--z-ink, #17130e); }
+.ztag .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--z-accent, #E2604A); }
+.zcas { position: absolute; perspective: 2200px; }
+.zcas .cd { position: absolute; top: 0; overflow: hidden; background: #000; border: 3px solid rgba(255,255,255,.55); box-shadow: 0 34px 90px rgba(23,19,14,.34); }
+.zcas .cd video, .zcas .cd img { display: block; width: 100%; height: 100%; object-fit: cover; }
 #zone.y { width: __W__px; height: __H__px; background: transparent; }
 #zone.y::after { display: none; }
-.zphone { position: absolute; overflow: hidden; border-radius: 44px; border: 10px solid #111; background: #000; box-shadow: 0 40px 90px rgba(0,0,0,.45); }
+.zphone { position: absolute; overflow: hidden; border-radius: 44px; border: 10px solid #15120f; background: #000; box-shadow: 0 40px 90px rgba(0,0,0,.45); }
 .zphone video { display: block; width: 100%; height: 100%; object-fit: cover; }
 .zlogo { position: absolute; }
 .zlogo img { width: 100%; height: auto; display: block; }
@@ -288,6 +321,48 @@ def zone_items(sid, z, t0, t1, tl):
             frm = it.get("from", "up")
             start_pos = {"left": "x: -400", "right": "x: 400", "up": "y: 120", "down": "y: -120", "far": "z: -900"}.get(frm, "y: 120")
             tl.append(f'tl.from("#{iid}", {{ {start_pos}, opacity: 0, duration: 0.55, ease: "back.out(1.4)" }}, {at});')
+        elif typ == "glass":
+            ico = f'<div class="ico">{esc(it["icon"])}</div>' if it.get("icon") else ""
+            ttl = f'<div class="ttl">{rich(it["title"])}</div>' if it.get("title") else ""
+            num = (f'<div class="num2" id="{iid}-n" data-suffix="{esc(it.get("suffix", ""))}">0{esc(it.get("suffix", ""))}</div>' if it.get("count")
+                   else f'<div class="num2">{esc(it["number"])}</div>' if it.get("number") else "")
+            sub = f'<div class="sub">{esc(it["sub"])}</div>' if it.get("sub") else ""
+            bars = ('<div class="bars">' + "".join(f'<i id="{iid}-b{k}" style="height:{v}%"></i>' for k, v in enumerate(it["bars"])) + "</div>") if it.get("bars") else ""
+            shot = f'<div class="shot"><img src="{esc(it["shot"])}" alt=""></div>' if it.get("shot") else ""
+            items_html.append(f'<div class="zglass{" dark" if it.get("dark") else ""}" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 520)}px;{"height:" + str(it["h"]) + "px;" if it.get("h") else ""}">{ico}{ttl}{num}{sub}{bars}{shot}</div>')
+            frm = it.get("from", "up")
+            start_pos = {"left": "x: -260", "right": "x: 260", "up": "y: 90", "down": "y: -90", "none": "y: 0"}.get(frm, "y: 90")
+            tl.append(f'tl.from("#{iid}", {{ {start_pos}, opacity: 0, scale: 0.94, duration: 0.55, ease: "back.out(1.5)" }}, {at});')
+            if it.get("count"):
+                tl.append(f'(function(){{ const el = document.getElementById("{iid}-n"); const o = {{ v: 0 }}; tl.to(o, {{ v: {it["count"]}, duration: {r3(it.get("count_dur", 0.9))}, ease: "power2.out", onUpdate: () => {{ el.textContent = Math.round(o.v).toLocaleString("{LOCALE}").replace(/\u202f|\u00a0/g, " ") + el.dataset.suffix; }} }}, {r3(float(at) + 0.2)}); }})();')
+            for k in range(len(it.get("bars", []))):
+                tl.append(f'tl.from("#{iid}-b{k}", {{ scaleY: 0, duration: 0.45, ease: "back.out(1.6)" }}, {r3(float(at) + 0.25 + 0.08 * k)});')
+        elif typ == "statement":
+            kick = f'<div class="kick" id="{iid}-k">{esc(it["kicker"])}</div>' if it.get("kicker") else ""
+            big = f'<div class="big" id="{iid}-t">{rich(it["text"])}</div>' if it.get("text") else ""
+            sub2 = f'<div class="sub2" id="{iid}-s">{rich(it["sub"])}</div>' if it.get("sub") else ""
+            items_html.append(f'<div class="zst" id="{iid}" style="left:{x}px;top:{y}px;width:{it.get("w", 860)}px;{"text-align:" + it["align"] + ";" if it.get("align") else ""}">{kick}{big}{sub2}</div>')
+            for k, part in enumerate([nm for nm, ok in (("k", it.get("kicker")), ("t", it.get("text")), ("s", it.get("sub"))) if ok]):
+                tl.append(f'tl.from("#{iid}-{part}", {{ y: 42, opacity: 0, duration: 0.5, ease: "power3.out" }}, {r3(float(at) + 0.12 * k)});')
+        elif typ == "pill":
+            arw = f'<span class="arw">{esc(it.get("arrow", "\u2197"))}</span>' if it.get("arrow", True) else ""
+            items_html.append(f'<div class="zpill" id="{iid}" style="left:{x}px;top:{y}px">{rich(it["text"])}{arw}</div>')
+            tl.append(f'tl.from("#{iid}", {{ y: 30, opacity: 0, scale: 0.92, duration: 0.45, ease: "back.out(1.8)" }}, {at});')
+        elif typ == "tag":
+            items_html.append(f'<div class="ztag" id="{iid}" style="left:{x}px;top:{y}px"><span class="dot"></span>{esc(it["text"])}</div>')
+            tl.append(f'tl.from("#{iid}", {{ y: 26, opacity: 0, scale: 0.9, duration: 0.4, ease: "back.out(2)" }}, {at});')
+        elif typ == "cascade":
+            cw, ch = it.get("cw", 330), it.get("ch", 586)
+            step, tilt, rise = it.get("step", 250), it.get("tilt", 24), it.get("rise", 26)
+            out_rel = rel(it["out_at"]) if it.get("out_at") is not None else r3(t1 - t0)
+            cards = []
+            for k, src in enumerate(it["src"]):
+                inner = (f'<video id="{iid}-c{k}-v" class="clip" src="{esc(src)}" data-start="{at}" data-duration="{r3(float(out_rel) - float(at))}" data-media-start="{r3(it.get("media_start", 0))}" data-track-index="{44 + j * 4 + k}" muted playsinline></video>'
+                         if src.lower().endswith((".mp4", ".mov", ".webm")) else f'<img src="{esc(src)}" alt="">')
+                cards.append(f'<div class="cd" id="{iid}-c{k}" style="left:{k * step}px;top:{k * rise}px;width:{cw}px;height:{ch}px;border-radius:{it.get("radius", 24)}px;transform:rotateY({tilt}deg);z-index:{len(it["src"]) - k}">{inner}</div>')
+            items_html.append(f'<div class="zcas" id="{iid}" style="left:{x}px;top:{y}px;width:{(len(it["src"]) - 1) * step + cw}px;height:{ch + (len(it["src"]) - 1) * rise}px">{"".join(cards)}</div>')
+            for k in range(len(it["src"])):
+                tl.append(f'tl.from("#{iid}-c{k}", {{ x: 170, opacity: 0, duration: 0.6, ease: "power3.out" }}, {r3(float(at) + 0.1 * k)});')
         elif typ == "big":
             items_html.append(f'<div class="zbig" id="{iid}" style="top:{y}px;{"left:" + str(it["x"]) + "px;right:auto;width:" + str(it.get("w", 800)) + "px;" if it.get("x") is not None and it.get("x") != "center" else ""}font-size:{it.get("size", 200)}px;{"color:" + it["color"] + ";" if it.get("color") else ""}"><span id="{iid}-t" style="display:inline-block;position:relative;padding:0 30px">{esc(it.get("text", "")) if not it.get("value") else "0" + esc(it.get("suffix", " €"))}{"<span class=\"zring\" id=\"" + iid + "-ring\" style=\"inset:-16px -30px\"></span>" if it.get("circle_at") is not None else ""}</span>{("<div style=\"font-size:30px;letter-spacing:.14em;color:#8F8B85;margin-top:18px;font-weight:700\">" + esc(it["label"]) + "</div>") if it.get("label") else ""}</div>')
             tl.append(f'tl.from("#{iid}", {{ scale: 0.6, opacity: 0, duration: 0.4, ease: "back.out(2)" }}, {at});')
@@ -387,22 +462,54 @@ def scene_html(sid, sc):
         z = sc.get("zone", {})
         brand = sb.get("brand", {})
         t0, t1 = float(sc["start"]), float(sc["end"])
-        body.append(f'<style>#root {{ --z-bg: {brand.get("bg", "#F3F1EE")}; --z-ink: {brand.get("ink", "#0F0D0D")}; --z-accent: {brand.get("accent", "#D40F30")}; --z-font: {brand.get("font", "\"Helvetica Neue\", Helvetica, Arial, sans-serif")}; }}</style>')
+        body.append(f'<style>#root {{ --z-bg: {brand.get("bg", "#FBFAF8")}; --z-ink: {brand.get("ink", "#17130e")}; --z-accent: {brand.get("accent", "#E2604A")}; --z-font: {brand.get("font", "\"Helvetica Neue\", Helvetica, Arial, sans-serif")}; }}</style>')
         def rel(t):
             return r3(max(0, resolve_at(t, t0, t1) - t0))
-        # the speaker is a clip inside the scene, so the scene timeline can move it
+        # the world: a mesh gradient or an image, drifting slowly so the frame is never frozen
+        bg = sc.get("bg", sb.get("bg", "mesh"))
+        fill = (f'<div class="fill mesh" id="{sid}-fill" data-layout-allow-overflow></div>' if bg == "mesh"
+                else f'<div class="fill" id="{sid}-fill" data-layout-allow-overflow style="background-image:url({esc(bg)})"></div>')
+        body.append(f'<div class="ybg" id="{sid}-bg">{fill}</div>')
+        tl.append(f'tl.fromTo("#{sid}-fill", {{ scale: 1 }}, {{ scale: 1.05, duration: {r3(slot)}, ease: "none" }}, 0);')
+        body.append(f'<div class="yshadow" id="{sid}-shadow"></div>')
         pos = sc.get("face_pos", sb.get("face_pos_y", "50% 50%"))
-        body.append(f'<div class="ybg" id="{sid}-bg"></div>')
         body.append(f'<div class="yface" id="{sid}-face"><video id="{sid}-face-v" class="clip" src="{esc(SPEAKER)}" data-start="0" data-duration="{r3(min(slot, DURATION - float(sb.get("freeze_tail", 0)) - t0))}" data-media-start="{r3(t0)}" data-track-index="0" muted playsinline style="object-position:{pos}"></video></div>')
-        m = int(sc.get("face_margin", 60))
-        SPOTS = {"full": (0, 0, 1.0, 0), "tl": (m, m, 0.3, 36), "tr": (W - W * 0.3 - m, m, 0.3, 36), "bl": (m, H - H * 0.3 - m, 0.3, 36), "br": (W - W * 0.3 - m, H - H * 0.3 - m, 0.3, 36),
-                 "left": (m, (H - H * 0.5) / 2, 0.5, 36), "right": (W - W * 0.5 - m, (H - H * 0.5) / 2, 0.5, 36), "center": ((W - W * 0.5) / 2, (H - H * 0.5) / 2, 0.5, 36)}
+        # the speaker card: crop (clip-path) + transform, so a 16:9 source becomes a portrait card without distortion
+        m = int(sc.get("face_margin", 70))
+        SPOTS = {"full": (0, 0, W, H, 0), "wide": (m + 90, m + 50, W - 2 * (m + 90), H - 2 * (m + 50), 34),
+                 "left": (m, 90, 620, 900, 34), "right": (W - 620 - m, 90, 620, 900, 34),
+                 "tl": (m, m, 430, 600, 30), "tr": (W - 430 - m, m, 430, 600, 30),
+                 "bl": (m, H - 600 - m, 430, 600, 30), "br": (W - 430 - m, H - 600 - m, 430, 600, 30),
+                 "center": ((W - 680) / 2, 100, 680, 880, 34)}
+        fx, fy = sc.get("face_crop", sb.get("face_crop_y", [0.5, 0.42]))
+        zoom = float(sc.get("face_zoom", sb.get("face_zoom_y", 1.22)))
+
+        def card(spot):
+            x, y, w, h, rad = SPOTS[spot]
+            if spot in sc.get("face_size", {}):
+                w, h = sc["face_size"][spot]
+            k = max(w / W, h / H) * (1.0 if spot == "full" else zoom)
+            vw, vh = w / k, h / k
+            left, top = (W - vw) * fx, (H - vh) * fy
+            clip = f"inset({r3(top)}px {r3(W - left - vw)}px {r3(H - top - vh)}px {r3(left)}px round {r3(rad / k)}px)"
+            return (x, y, w, h, rad, f'x: {r3(x - left * k)}, y: {r3(y - top * k)}, scale: {r3(k)}, clipPath: "{clip}", transformOrigin: "0 0"')
+
+        start_spot = sc.get("face_start", "full")
+        if start_spot != "full":
+            x, y, w, h, rad, tw = card(start_spot)
+            tl.append(f'tl.set("#{sid}-face", {{ {tw} }}, 0);')
+            tl.append(f'tl.set("#{sid}-shadow", {{ x: {r3(x)}, y: {r3(y)}, width: {r3(w)}, height: {r3(h)}, borderRadius: "{rad}px", opacity: 0.22 }}, 0);')
         for mv in sc.get("face", []):
             spot = mv.get("pos", "full")
+            d = mv.get("duration", 0.65)
+            when = rel(mv.get("at", t0))
             if spot == "hidden":
-                tl.append(f'tl.to("#{sid}-face", {{ opacity: 0, duration: 0.3 }}, {rel(mv.get("at", t0))});'); continue
-            x, y, sc_, rad = SPOTS[spot]
-            tl.append(f'tl.to("#{sid}-face", {{ x: {r3(x)}, y: {r3(y)}, scale: {sc_}, borderRadius: "{int(rad / max(sc_, 0.01))}px", opacity: 1, duration: {mv.get("duration", 0.6)}, ease: "power3.inOut" }}, {rel(mv.get("at", t0))});')
+                tl.append(f'tl.to("#{sid}-face", {{ opacity: 0, duration: 0.3 }}, {when});')
+                tl.append(f'tl.to("#{sid}-shadow", {{ opacity: 0, duration: 0.3 }}, {when});')
+                continue
+            x, y, w, h, rad, tw = card(spot)
+            tl.append(f'tl.to("#{sid}-face", {{ {tw}, opacity: 1, duration: {d}, ease: "power3.inOut" }}, {when});')
+            tl.append(f'tl.to("#{sid}-shadow", {{ x: {r3(x)}, y: {r3(y)}, width: {r3(w)}, height: {r3(h)}, borderRadius: "{rad}px", opacity: {0 if spot == "full" else 0.22}, duration: {d}, ease: "power3.inOut" }}, {when});')
         items_html = zone_items(sid, z, t0, t1, tl)
         body.append(f'<div id="zone" class="y">{"".join(items_html)}</div>')
     elif layout == "F":
@@ -580,7 +687,11 @@ CAP_CSS_POP += f"""
       .cap.on-zone {{ color: {sb.get("brand", {}).get("ink", "#0F0D0D")}; text-shadow: none; }}
       .cap.on-zone em {{ text-shadow: none; }}
       .cap.on-y span {{ background: rgba(10,10,10,.62); padding: 10px 26px 12px; border-radius: 16px; text-shadow: none; }}"""
-CAP_CSS = CAP_CSS_POP if CAP_STYLE == "pop" else CAP_CSS_KIT
+CAP_CSS_NATE = f""".cap {{ position: absolute; left: {80 if W < H else 200}px; right: {80 if W < H else 200}px; z-index: 5; text-align: center; font: 700 {CAP_SIZE}px/1.15 {CAP_FONT}; color: #fff; letter-spacing: -.015em; }}
+      .cap span {{ display: inline-block; max-width: {880 if W < H else 1380}px; background: rgba(20,20,24,.86); padding: 14px 30px 16px; border-radius: 20px; box-shadow: 0 18px 44px rgba(0,0,0,.28); }}
+      .cap b {{ font-weight: inherit; display: inline-block; }}
+      .cap em {{ font-style: normal; display: inline-block; background: {CAP_ACCENT}; color: #fff; border-radius: 12px; padding: 2px 14px 4px; margin: 0 2px; }}"""
+CAP_CSS = {"pop": CAP_CSS_POP, "nate": CAP_CSS_NATE}.get(CAP_STYLE, CAP_CSS_KIT)
 
 
 def build():
